@@ -241,7 +241,11 @@ export default async function handler(request: ApiRequest, response: ApiResponse
       return response.status(400).json({ error: 'This service is no longer available for appointment requests.' });
     }
     const service = JSON.parse(String(serviceResult.rows[0].content_json)) as { title?: unknown };
-    const serviceName = typeof service.title === 'string' ? service.title.trim().slice(0, 160) : '';
+    const serviceName = serviceId === 'xray'
+      ? 'X-Ray Referral Request'
+      : serviceId === 'pharmacy'
+        ? 'Medication Request'
+        : typeof service.title === 'string' ? service.title.trim().slice(0, 160) : '';
     if (!serviceName) return response.status(400).json({ error: 'The selected service is not configured for appointment requests.' });
     const clinicStatus = await db.execute("SELECT setting_value FROM clinic_settings WHERE setting_key = 'clinic_open'");
     if (clinicStatus.rows[0]?.setting_value !== '1') {

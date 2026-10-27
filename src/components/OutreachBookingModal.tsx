@@ -30,6 +30,12 @@ function localDateString() {
   }).format(new Date());
 }
 
+function appointmentServiceLabel(service: { id: string; title: string; titleFil: string }, isFilipino: boolean) {
+  if (service.id === 'xray') return isFilipino ? 'Kahilingan ng referral para sa X-ray' : 'X-Ray Referral Request';
+  if (service.id === 'pharmacy') return isFilipino ? 'Kahilingan para sa gamot' : 'Medication Request';
+  return isFilipino ? service.titleFil : service.title;
+}
+
 export const OutreachBookingModal: React.FC<{ user: User }> = ({ user }) => {
   const {
     t,
@@ -238,7 +244,7 @@ export const OutreachBookingModal: React.FC<{ user: User }> = ({ user }) => {
               <div>
                 <h3 className="text-lg font-bold text-slate-950">{isFilipino ? 'Nakatala ang iyong appointment request.' : 'Your appointment request is recorded.'}</h3>
                 <p className="mt-2 text-sm text-slate-600">{isFilipino ? 'Hindi pa ito kumpirmadong appointment. Makikipag-ugnayan ang clinic staff para kumpirmahin ang schedule.' : 'This is not a confirmed appointment yet. Clinic staff will contact you to confirm the schedule.'}</p>
-                <p className="mt-4 text-sm text-slate-700">{isFilipino ? selectedService?.titleFil : selectedService?.title}</p>
+                <p className="mt-4 text-sm text-slate-700">{selectedService && appointmentServiceLabel(selectedService, isFilipino)}</p>
                 <p className="mt-1 text-sm text-slate-600">{preferredDate} · {preferredTime === 'morning' ? 'Morning' : preferredTime === 'afternoon' ? 'Afternoon' : 'No preference'} · {zone}</p>
                 <p className="mt-4 text-xs text-slate-500">{isFilipino ? 'Reference number' : 'Request reference'}: <strong className="font-mono text-slate-900">{receipt.referenceCode}</strong></p>
                 <button onClick={handleClose} className="mt-6 px-4 py-2.5 bg-teal-900 text-white text-sm font-bold rounded-md hover:bg-teal-950">{isFilipino ? 'Isara' : 'Done'}</button>
@@ -280,7 +286,7 @@ export const OutreachBookingModal: React.FC<{ user: User }> = ({ user }) => {
               <div className="sm:col-span-2">
                 <label htmlFor="appointment-service" className="block text-sm font-semibold text-slate-800 mb-1.5">{isFilipino ? 'Serbisyo' : 'Service'}</label>
                 <select id="appointment-service" value={serviceId} onChange={(event) => setServiceId(event.target.value)} className="w-full px-3.5 py-3 bg-white border border-slate-300 rounded-md text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-teal-700">
-                  {services.map((service) => <option key={service.id} value={service.id}>{isFilipino ? service.titleFil : service.title}</option>)}
+                  {services.map((service) => <option key={service.id} value={service.id}>{appointmentServiceLabel(service, isFilipino)}</option>)}
                 </select>
                 {services.length === 0 && <p role="status" className="mt-2 text-xs text-amber-800">{isFilipino ? 'Walang kasalukuyang nailathalang serbisyo para sa appointment request.' : 'There are no published services available for appointment requests.'}</p>}
               </div>

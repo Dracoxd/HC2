@@ -2,13 +2,14 @@ import React, { useState } from 'react';
 import { useHealthCenter } from '../context/HealthCenterContext';
 import { ServiceDetail } from '../types';
 import { Activity, Baby, Clock, Heart, MapPin, Pill, ShieldAlert, Smile, Stethoscope, X } from 'lucide-react';
-import animalBiteImage from '../assets/images/QUINTIN.png';
-import bnsImage from '../assets/images/QUINTIN.png';
-import checkupImage from '../assets/images/QUINTIN.png';
-import dentalImage from '../assets/images/QUINTIN.png';
-import maternityImage from '../assets/images/QUINTIN.png';
-import medicinesImage from '../assets/images/QUINTIN.png';
-import xrayImage from '../assets/images/QUINTIN.png';
+import animalBiteImage from '../assets/images/ANIMAL BITE.jpg';
+import bnsImage from '../assets/images/BNS.png';
+import checkupImage from '../assets/images/CHECK UP.jpg';
+import covidImage from '../assets/images/COVID 19.png';
+import dentalImage from '../assets/images/DENTAL CLINIC.jpg';
+import maternityImage from '../assets/images/MATERNITY.png';
+import medicinesImage from '../assets/images/MEDS.jpg';
+import xrayImage from '../assets/images/XRAY.jpg';
 
 const categories = [
   { id: 'all', label: 'serviceTabAll' },
@@ -26,6 +27,7 @@ const serviceImages: Partial<Record<ServiceDetail['category'], string>> = {
   animal_bite: animalBiteImage,
   nutrition: bnsImage,
   checkup: checkupImage,
+  antigen_testing: covidImage,
   dental: dentalImage,
   maternity: maternityImage,
   pharmacy: medicinesImage,
