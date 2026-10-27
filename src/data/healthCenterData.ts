@@ -9,20 +9,20 @@ import {
 } from '../types';
 
 export const DEFAULT_CLINIC_PUBLIC_SETTINGS: ClinicPublicSettings = {
-  clinicHours: 'Monday-Friday · 7:00 AM-4:00 PM',
-  clinicHoursFil: 'Lunes-Biyernes · 7:00 AM-4:00 PM',
-  doctorHours: 'Doctors: Mon 8 AM-3 PM · Tue-Fri 9 AM-3 PM',
-  doctorHoursFil: 'Doktor: Lunes 8 AM-3 PM · Martes-Biyernes 9 AM-3 PM',
-  xrayHours: 'X-ray: Mon-Fri 7 AM-10 AM · 3rd floor',
-  xrayHoursFil: 'X-ray: Lunes-Biyernes 7 AM-10 AM · 3rd floor',
-  dentalHours: 'Dental: Monday, Wednesday, Friday',
-  dentalHoursFil: 'Dental: Lunes, Miyerkules, Biyernes',
-  clinicAddress: 'Mayor Moises R. Flores Health Center, Municipality of Pateros, Metro Manila',
-  clinicAddressFil: 'Mayor Moises R. Flores Health Center, Pateros, Metro Manila',
-  contactPhone: '(02) 8642-5159',
-  contactEmail: 'mrfloreshealthcenter@gmail.com',
-  emergencyPhone: '(02) 8642-5159',
-  emergencyPhoneFil: '(02) 8642-5159',
+  clinicHours: 'Monday, Wednesday: 8:00 AM-5:00 PM',
+  clinicHoursFil: 'Lunes, Miyerkules: 8:00 AM-5:00 PM',
+  doctorHours: 'No permanent doctor; scheduled duty personnel serve Tuesday-Friday mornings, 8:00-11:00 AM',
+  doctorHoursFil: 'Walang permanenteng doktor; naka-iskedyul ang duty personnel tuwing Martes-Biyernes, 8:00-11:00 AM',
+  xrayHours: 'No X-ray service listed for Quintin De Borja Health Center',
+  xrayHoursFil: 'Walang nakalistang serbisyo ng X-ray sa Quintin De Borja Health Center',
+  dentalHours: 'Mon-Tue: Quintin De Borja; Wednesday: Dental Outreach; Thu-Fri: Delfin Salonga',
+  dentalHoursFil: 'Lunes-Martes: Quintin De Borja; Miyerkules: Dental Outreach; Huwebes-Biyernes: Delfin Salonga',
+  clinicAddress: 'Aguho, Martinez-Poblacion, Pateros, Metro Manila',
+  clinicAddressFil: 'Aguho, Martinez-Poblacion, Pateros, Metro Manila',
+  contactPhone: 'No hotline available',
+  contactEmail: '',
+  emergencyPhone: '',
+  emergencyPhoneFil: '',
   holidayAdvisory: 'Verify clinic operations before visiting on holidays.',
   holidayAdvisoryFil: 'Kumpirmahin muna ang operasyon ng klinika bago bumisita kapag holiday.',
 };
@@ -55,7 +55,7 @@ export const OPERATING_HOURS_DATA = {
   }
 };
 
-export const STAFF_DIRECTORY: StaffMember[] = [
+export const LEGACY_STAFF_DIRECTORY: StaffMember[] = [
 
   {
     id: 'staff-1',
@@ -365,6 +365,21 @@ export const STAFF_DIRECTORY: StaffMember[] = [
     location: 'Health Center Facility',
     avatarInitials: 'NM'
   }
+];
+
+export const STAFF_DIRECTORY: StaffMember[] = [
+  { id: 'qd-1', name: 'Carmencita P. Ison, MD, MPA', title: 'Carmencita P. Ison, MD, MPA', role: 'Municipal Health Officer / Head', roleFil: 'Municipal Health Officer / Pinuno', department: 'doctors', departmentName: 'Quintin De Borja Health Center', qualifications: 'Doctor of Medicine, MPA', schedule: 'Assigned municipal health leadership; duty availability varies', scheduleFil: 'Tungkulin sa municipal health leadership; nag-iiba ang availability', location: 'Quintin De Borja Health Center', isHead: true, avatarInitials: 'CI' },
+  { id: 'qd-2', name: 'Chevily C. Reyes, DMD', title: 'Chevily C. Reyes, DMD', role: 'Dentist III', roleFil: 'Dentist III', department: 'dental', departmentName: 'Dental Clinic', qualifications: 'Doctor of Dental Medicine (DMD)', schedule: 'Monday and Tuesday at Quintin De Borja', scheduleFil: 'Lunes at Martes sa Quintin De Borja', location: 'Quintin De Borja Health Center', avatarInitials: 'CR' },
+  { id: 'qd-3', name: 'Ms. Meizl Joy E. Sincuya', title: 'Meizl Joy E. Sincuya', role: 'Nutrition/Dietitian II', roleFil: 'Nutrition/Dietitian II', department: 'nutrition_bns', departmentName: 'Nutrition Services', qualifications: 'Nutrition/Dietitian II', schedule: 'Contact the health center for current availability', scheduleFil: 'Makipag-ugnayan sa health center para sa kasalukuyang availability', location: 'Quintin De Borja Health Center', avatarInitials: 'MS' },
+  { id: 'qd-4', name: 'Ms. Anna Beatriz C. Castro', title: 'Anna Beatriz C. Castro', role: 'Nutrition Officer', roleFil: 'Nutrition Officer', department: 'nutrition_bns', departmentName: 'Nutrition Services', qualifications: 'Nutrition Officer', schedule: 'Contact the health center for current availability', scheduleFil: 'Makipag-ugnayan sa health center para sa kasalukuyang availability', location: 'Quintin De Borja Health Center', avatarInitials: 'AC' },
+  { id: 'qd-5', name: 'Ms. Anna Lynn O. Candichoy', title: 'Anna Lynn O. Candichoy', role: 'Midwife III', roleFil: 'Midwife III', department: 'nursing_midwifery', departmentName: 'Maternal and Child Health', qualifications: 'Midwife III', schedule: 'Contact the health center for current availability', scheduleFil: 'Makipag-ugnayan sa health center para sa kasalukuyang availability', location: 'Quintin De Borja Health Center', avatarInitials: 'AC' },
+  { id: 'qd-6', name: 'Ms. Emerina A. Assuncion', title: 'Emerina A. Assuncion', role: 'Midwife III', roleFil: 'Midwife III', department: 'nursing_midwifery', departmentName: 'Maternal and Child Health', qualifications: 'Midwife III', schedule: 'Contact the health center for current availability', scheduleFil: 'Makipag-ugnayan sa health center para sa kasalukuyang availability', location: 'Quintin De Borja Health Center', avatarInitials: 'EA' },
+  { id: 'qd-7', name: 'Ms. Etheyl L. Mollo', title: 'Etheyl L. Mollo', role: 'Midwife II', roleFil: 'Midwife II', department: 'nursing_midwifery', departmentName: 'Maternal and Child Health', qualifications: 'Midwife II', schedule: 'Contact the health center for current availability', scheduleFil: 'Makipag-ugnayan sa health center para sa kasalukuyang availability', location: 'Quintin De Borja Health Center', avatarInitials: 'EM' },
+  { id: 'qd-8', name: 'Ms. Zenaida E. Tungol', title: 'Zenaida E. Tungol', role: 'Barangay Nutrition Scholar (BNS)', roleFil: 'Barangay Nutrition Scholar (BNS)', department: 'nutrition_bns', departmentName: 'Barangay Nutrition Services', qualifications: 'Barangay Nutrition Scholar', schedule: 'Contact the health center for current availability', scheduleFil: 'Makipag-ugnayan sa health center para sa kasalukuyang availability', location: 'Quintin De Borja Health Center', avatarInitials: 'ZT' },
+  { id: 'qd-9', name: 'Ms. Leah R. Mirabel', title: 'Leah R. Mirabel', role: 'Barangay Nutrition Scholar (BNS)', roleFil: 'Barangay Nutrition Scholar (BNS)', department: 'nutrition_bns', departmentName: 'Barangay Nutrition Services', qualifications: 'Barangay Nutrition Scholar', schedule: 'Contact the health center for current availability', scheduleFil: 'Makipag-ugnayan sa health center para sa kasalukuyang availability', location: 'Quintin De Borja Health Center', avatarInitials: 'LM' },
+  { id: 'qd-10', name: 'Ms. Luzviminda F. Mesina', title: 'Luzviminda F. Mesina', role: 'Barangay Nutrition Scholar (BNS)', roleFil: 'Barangay Nutrition Scholar (BNS)', department: 'nutrition_bns', departmentName: 'Barangay Nutrition Services', qualifications: 'Barangay Nutrition Scholar', schedule: 'Contact the health center for current availability', scheduleFil: 'Makipag-ugnayan sa health center para sa kasalukuyang availability', location: 'Quintin De Borja Health Center', avatarInitials: 'LM' },
+  { id: 'qd-11', name: 'Ms. Eliza A. Gapayao', title: 'Eliza A. Gapayao', role: 'Dental Aide', roleFil: 'Dental Aide', department: 'admin_support', departmentName: 'Dental Clinic', qualifications: 'Dental Aide', schedule: 'Monday and Tuesday at Quintin De Borja', scheduleFil: 'Lunes at Martes sa Quintin De Borja', location: 'Quintin De Borja Health Center', avatarInitials: 'EG' },
+  { id: 'qd-12', name: 'Ms. Marian P. Salonga', title: 'Marian P. Salonga', role: 'Utility Worker / Barangay Nutrition Scholar (BNS)', roleFil: 'Utility Worker / Barangay Nutrition Scholar (BNS)', department: 'admin_support', departmentName: 'Support and Nutrition Services', qualifications: 'Utility Worker / Barangay Nutrition Scholar', schedule: 'Contact the health center for current availability', scheduleFil: 'Makipag-ugnayan sa health center para sa kasalukuyang availability', location: 'Quintin De Borja Health Center', avatarInitials: 'MS' }
 ];
 
 export const SERVICES_DATA: ServiceDetail[] = [

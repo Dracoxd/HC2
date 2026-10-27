@@ -1,7 +1,7 @@
 import React from 'react';
 import { useHealthCenter } from '../context/HealthCenterContext';
 
-import centerPhoto from '../assets/images/MR FLORES.png';
+import centerPhoto from '../assets/images/QUINTIN.png';
 
 export const Footer: React.FC = () => {
   const { setActiveSection } = useHealthCenter();
@@ -18,7 +18,7 @@ export const Footer: React.FC = () => {
           <div className="flex items-center gap-4">
             <img src={centerPhoto} alt="" className="h-14 w-14 rounded-full border border-white/15 object-cover" />
             <div>
-              <div className="font-bold">Mayor Moises R. Flores Health Center</div>
+              <div className="font-bold">Quintin De Borja Health Center</div>
             </div>
           </div>
           <nav aria-label="Footer navigation" className="flex flex-wrap gap-x-5 gap-y-3 text-sm text-white/80">
@@ -29,7 +29,7 @@ export const Footer: React.FC = () => {
           </nav>
         </div>
         <div className="mt-5 border-t border-white/15 pt-3 text-left text-xs text-white/60">
-          <span>© {new Date().getFullYear()} Mayor Moises R. Flores Health Center</span>
+          <span>© {new Date().getFullYear()} Quintin De Borja Health Center</span>
         </div>
       </div>
     </footer>

@@ -224,7 +224,7 @@ export const OutreachBookingModal: React.FC<{ user: User }> = ({ user }) => {
       <section role="dialog" aria-modal="true" aria-labelledby="appointment-title" className="my-0 max-h-[calc(100dvh-1rem-env(safe-area-inset-top)-env(safe-area-inset-bottom))] w-full max-w-2xl overflow-y-auto bg-white shadow-2xl sm:my-5 sm:max-h-[92vh]">
         <header className="flex items-start justify-between gap-3 border-b border-slate-200 px-4 py-4 sm:gap-5 sm:px-7 sm:py-5">
           <div>
-            <div className="text-xs font-bold uppercase tracking-wider text-teal-800">Mayor Moises R. Flores Health Center</div>
+            <div className="text-xs font-bold uppercase tracking-wider text-teal-800">Quintin De Borja Health Center</div>
             <h2 id="appointment-title" className="mt-1 text-xl font-bold text-slate-950 sm:text-2xl">{receipt ? (isFilipino ? 'Natanggap ang request' : 'Request received') : (isFilipino ? 'Online appointment request' : 'Request an appointment')}</h2>
             {!receipt && <p className="mt-1 text-sm text-slate-600">{isFilipino ? 'Ipadala ang iyong kahilingan. Tatawagan ka ng kawani para kumpirmahin ang oras.' : 'Send your preferred schedule. Clinic staff will contact you to confirm.'}</p>}
           </div>

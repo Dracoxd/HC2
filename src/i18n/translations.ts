@@ -1,6 +1,6 @@
 export const translations = {
   en: {
-    brand: 'Mayor Moises R. Flores Health Center',
+    brand: 'Quintin De Borja Health Center',
     navHome: 'Overview',
     navServices: 'Services',
     navStaff: 'Staff Directory',
@@ -14,20 +14,20 @@ export const translations = {
     btnSwitchLanguage: 'Filipino',
 
 
-    bannerHours: 'Monday to Friday: 7:00 AM - 4:00 PM',
-    bannerDoctors: 'Clinic Hours: Mon 8AM - 3PM | Tues - Fri 9AM - 3PM',
-    bannerXray: 'Pateros X-ray Clinic (3rd Floor): Mon - Fri, 7AM - 10AM',
-    bannerDental: 'Dental Clinic: M W F Only',
+    bannerHours: 'Monday & Wednesday: 8:00 AM - 5:00 PM',
+    bannerDoctors: 'Duty personnel: Tue-Fri, 8:00-11:00 AM; no permanent doctor',
+    bannerXray: 'No X-ray service listed',
+    bannerDental: 'Mon-Tue QDB | Wed Outreach | Thu-Fri Delfin Salonga',
 
 
-    heroTitle: 'Mayor Moises R. Flores Health Center',
-    heroSubtitle: 'Serving San Pedro, Magtanggol, and Tabacalera. Offering maternity, nutrition (BNS 0-59 months OPT), dental (M-W-F), animal bite, check-up, 3rd floor X-ray clinic, and free maintenance medications.',
+    heroTitle: 'Quintin De Borja Health Center',
+    heroSubtitle: 'Serving Aguho and Martinez-Poblacion in Pateros. Available services include consultation, prenatal and postnatal care, family planning, immunization, dental services, TB-DOTS, and COVID-19 antigen testing.',
     heroCtaPrimary: 'Book Outreach Appointment',
     heroCtaSecondary: 'View Services',
 
 
     servicesTitle: 'Health Center Services',
-    servicesSubtitle: 'Programs and medical services offered at Mayor Moises R. Flores Health Center.',
+    servicesSubtitle: 'Programs and medical services offered at Quintin De Borja Health Center.',
     serviceTabAll: 'All Services',
     serviceTabMaternal: 'Maternity / Pregnant',
     serviceTabNutrition: 'Nutrition (BNS)',
@@ -151,7 +151,7 @@ export const translations = {
     copyright: 'Mayor Moises R. Flores Health Center · Pateros.'
   },
   fil: {
-    brand: 'Mayor Moises R. Flores Health Center',
+    brand: 'Quintin De Borja Health Center',
     navHome: 'Pangkalahatan',
     navServices: 'Mga Serbisyo',
     navStaff: 'Direktoryo ng Kawani',
@@ -165,20 +165,20 @@ export const translations = {
     btnSwitchLanguage: 'English',
 
 
-    bannerHours: 'Lunes hanggang Biyernes: 7:00 AM - 4:00 PM',
-    bannerDoctors: 'Clinic Hours: Lunes 8AM - 3PM | Martes - Biyernes 9AM - 3PM',
-    bannerXray: 'Pateros X-ray Clinic (3rd Floor): Lunes - Biyernes, 7AM - 10AM',
-    bannerDental: 'Dental Clinic: M W F Lamang',
+    bannerHours: 'Lunes at Miyerkules: 8:00 AM - 5:00 PM',
+    bannerDoctors: 'Duty personnel: Martes-Biyernes, 8:00-11:00 AM; walang permanenteng doktor',
+    bannerXray: 'Walang nakalistang serbisyo ng X-ray',
+    bannerDental: 'Lunes-Martes QDB | Miyerkules Outreach | Huwebes-Biyernes Delfin Salonga',
 
 
-    heroTitle: 'Mayor Moises R. Flores Health Center',
-    heroSubtitle: 'Naglilingkod sa San Pedro, Magtanggol, at Tabacalera. Nag-aalok ng maternity, nutrition (BNS 0-59 buwan OPT), dental (M-W-F), animal bite, check-up, 3rd floor X-ray clinic, at libreng gamot sa maintenance.',
+    heroTitle: 'Quintin De Borja Health Center',
+    heroSubtitle: 'Naglilingkod sa Aguho at Martinez-Poblacion sa Pateros. Kasama sa serbisyo ang konsultasyon, prenatal at postnatal check-up, family planning, immunization, dental services, TB-DOTS, at COVID-19 antigen testing.',
     heroCtaPrimary: 'Magpa-iskedyul ng Outreach',
     heroCtaSecondary: 'Tingnan ang Serbisyo',
 
 
     servicesTitle: 'Mga Serbisyo ng Health Center',
-    servicesSubtitle: 'Mga programa at serbisyong medikal sa Mayor Moises R. Flores Health Center.',
+    servicesSubtitle: 'Mga programa at serbisyong medikal sa Quintin De Borja Health Center.',
     serviceTabAll: 'Lahat',
     serviceTabMaternal: 'Maternity / Buntis',
     serviceTabNutrition: 'Nutrisyon (BNS)',

@@ -40,7 +40,7 @@ type RouteInfo = {
 type RouteFeatureCollection = GeoJSON.FeatureCollection<GeoJSON.LineString>;
 
 const destination: L.LatLngTuple = [14.5472886, 121.0659399];
-const destinationName = 'Mayor Moises R. Flores Health Center';
+const destinationName = 'Quintin De Borja Health Center';
 const wazeUrl = `https://www.waze.com/ul?ll=${destination[0]}%2C${destination[1]}&navigate=yes`;
 const routingProfiles: Record<TravelMode, string> = {
   walking: 'routed-foot',
