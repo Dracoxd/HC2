@@ -546,10 +546,10 @@ export const HealthCenterProvider: React.FC<{ children: React.ReactNode }> = ({ 
       const botReply: ChatMessage = {
         id: `m-${Date.now() + 1}`,
         sender: 'staff',
-        senderName: 'Ms. Sery Ann G. Ulanday, RN / Clinic Desk',
+        senderName: 'Quintin De Borja Health Center Staff / Clinic Desk',
         senderRole: 'Quintin De Borja Health Center',
         text: language === 'fil'
-          ? `Natanggap po namin ang mensahe para sa ${activePatient.fullName} (${activePatient.zone}). Bukas ang center Lunes hanggang Biyernes 7AM-4PM.`
+          ? `Natanggap po namin ang mensahe para sa ${activePatient.fullName} (${activePatient.zone}). Normal na oras ng center: Lunes at Miyerkules, 8AM-5PM.`
           : `We received your inquiry for ${activePatient.fullName} (${activePatient.zone}). The center is open Monday to Friday, 7:00 AM - 4:00 PM.`,
         timestamp: 'Just now'
       };
