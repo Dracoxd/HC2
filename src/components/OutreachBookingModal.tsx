@@ -231,7 +231,7 @@ export const OutreachBookingModal: React.FC<{ user: User }> = ({ user }) => {
         <header className="flex items-start justify-between gap-3 border-b border-slate-200 px-4 py-4 sm:gap-5 sm:px-7 sm:py-5">
           <div>
             <div className="text-xs font-bold uppercase tracking-wider text-teal-800">Quintin De Borja Health Center</div>
-            <h2 id="appointment-title" className="mt-1 text-xl font-bold text-slate-950 sm:text-2xl">{receipt ? (isFilipino ? 'Natanggap ang request' : 'Request received') : (isFilipino ? 'Online appointment request' : 'Request an appointment')}</h2>
+            <h2 id="appointment-title" className="mt-1 text-xl font-bold text-slate-950 sm:text-2xl">{receipt ? (isFilipino ? 'Natanggap ang request' : 'Request received') : (isFilipino ? 'Online appointment request' : 'REQUEST AN APPOINTMENT')}</h2>
             {!receipt && <p className="mt-1 text-sm text-slate-600">{isFilipino ? 'Ipadala ang iyong kahilingan. Tatawagan ka ng kawani para kumpirmahin ang oras.' : 'Send your preferred schedule. Clinic staff will contact you to confirm.'}</p>}
           </div>
           <button onClick={handleClose} aria-label="Close appointment form" className="p-2 text-slate-500 hover:text-slate-900"><X className="w-5 h-5" /></button>
@@ -305,7 +305,7 @@ export const OutreachBookingModal: React.FC<{ user: User }> = ({ user }) => {
               <div>
                 <label htmlFor="appointment-zone" className="block text-sm font-semibold text-slate-800 mb-1.5">{t.formZone} *</label>
                 <select id="appointment-zone" required value={zone} onChange={(event) => setZone(event.target.value)} className="w-full px-3.5 py-3 border border-slate-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-teal-700">
-                  <option>1. Aguho</option><option>2. Martirez</option><option>3. Poblacion</option>
+                  <option value="1. Aguho">Aguho</option><option value="2. Martirez">Martirez</option><option value="3. Poblacion">Poblacion</option>
                 </select>
               </div>
               <div>
@@ -315,7 +315,7 @@ export const OutreachBookingModal: React.FC<{ user: User }> = ({ user }) => {
               <div>
                 <label htmlFor="appointment-time" className="block text-sm font-semibold text-slate-800 mb-1.5">{t.formTimeSlot} *</label>
                 <select id="appointment-time" value={preferredTime} onChange={(event) => setPreferredTime(event.target.value)} className="w-full px-3.5 py-3 border border-slate-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-teal-700">
-                  <option value="morning">Morning</option><option value="afternoon">Afternoon</option><option value="no preference">No preference</option>
+                  <option value="morning">Morning</option><option value="afternoon">Afternoon</option>
                 </select>
               </div>
             </div>
