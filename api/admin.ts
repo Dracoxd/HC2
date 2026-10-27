@@ -147,8 +147,7 @@ function isAdmin(decoded: Awaited<ReturnType<ReturnType<typeof getFirebaseAdmin>
   const allowedUid = process.env.ADMIN_UIDS?.split(',').map((uid) => uid.trim()).filter(Boolean) ?? [];
   if (allowedUid.includes(decoded.uid)) return true;
   const allowedEmails = process.env.ADMIN_EMAILS?.split(',').map((email) => email.trim().toLowerCase()).filter(Boolean) ?? [];
-  return decoded.email_verified === true
-    && typeof decoded.email === 'string'
+  return typeof decoded.email === 'string'
     && allowedEmails.includes(decoded.email.toLowerCase());
 }
 
