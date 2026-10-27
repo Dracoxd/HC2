@@ -53,10 +53,17 @@ function announcementImageId(value: unknown) {
 
 function getFirebaseAdmin() {
   if (getApps().length > 0) return getAuth();
-  const serviceAccountJson = process.env.FIREBASE_SERVICE_ACCOUNT_JSON;
-  const credential = serviceAccountJson
-    ? cert(JSON.parse(serviceAccountJson))
-    : applicationDefault();
+  const serviceAccountJson = process.env.FIREBASE_SERVICE_ACCOUNT_JSON?.trim();
+  let credential;
+  if (serviceAccountJson) {
+    try {
+      credential = cert(JSON.parse(serviceAccountJson));
+    } catch {
+      throw new Error('FIREBASE_SERVICE_ACCOUNT_JSON is not valid JSON or is missing service-account fields.');
+    }
+  } else {
+    credential = applicationDefault();
+  }
   initializeApp({ credential });
   return getAuth();
 }
