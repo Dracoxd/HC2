@@ -32,7 +32,7 @@ export interface ServiceDetail {
   shortDescFil: string;
   fullDesc: string;
   fullDescFil: string;
-  category: 'maternity' | 'nutrition' | 'dental' | 'animal_bite' | 'checkup' | 'xray' | 'pharmacy';
+  category: 'maternity' | 'nutrition' | 'dental' | 'animal_bite' | 'checkup' | 'xray' | 'pharmacy' | 'antigen_testing';
   schedule: string;
   scheduleFil: string;
   location: string;
@@ -62,7 +62,7 @@ export interface MedicationStock {
 }
 
 export interface ZoneCoverage {
-  id: 'aguho' | 'martinez_poblacion';
+  id: 'aguho' | 'martirez' | 'poblacion';
   name: string;
   poblacion: string;
   assignedBNS: string[];

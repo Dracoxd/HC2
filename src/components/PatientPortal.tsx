@@ -37,7 +37,7 @@ export const PatientPortal: React.FC = () => {
   const [regName, setRegName] = useState('');
   const [regDob, setRegDob] = useState('1990-01-01');
   const [regGender, setRegGender] = useState('Female');
-  const [regZone, setRegZone] = useState('2. Martinez-Poblacion');
+  const [regZone, setRegZone] = useState('2. Martirez');
   const [regPhone, setRegPhone] = useState('+63 9');
   const [regPhilHealth, setRegPhilHealth] = useState('');
   const [regCategory, setRegCategory] = useState<'maternal' | 'senior_maintenance' | 'pediatric_opt'>('maternal');
@@ -155,8 +155,8 @@ export const PatientPortal: React.FC = () => {
                   </h3>
                   <p className="text-xs text-slate-600 mt-1">
                     {language === 'fil'
-                      ? 'Magrehistro ng bagong rekord o pumili mula sa mga nai-save na pasyente sa Aguho o Martinez-Poblacion.'
-                      : 'Register a patient record or select from saved patient records in Aguho or Martinez-Poblacion.'}
+                      ? 'Magrehistro ng bagong rekord o pumili mula sa mga nai-save na pasyente sa Aguho, Martirez, o Poblacion.'
+                      : 'Register a patient record or select from saved patient records in Aguho, Martirez, or Poblacion.'}
                   </p>
                 </div>
 
@@ -262,7 +262,8 @@ export const PatientPortal: React.FC = () => {
                       className="w-full px-3 py-2 bg-white border border-slate-300 rounded-lg text-slate-900 focus:outline-none focus:ring-2 focus:ring-teal-700"
                     >
                       <option value="1. Aguho">1. Aguho</option>
-                      <option value="2. Martinez-Poblacion">2. Martinez-Poblacion</option>
+                      <option value="2. Martirez">2. Martirez</option>
+                      <option value="3. Poblacion">3. Poblacion</option>
                     </select>
                   </div>
 

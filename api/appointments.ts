@@ -12,7 +12,7 @@ type ApiResponse = ServerResponse & {
   json: (body: unknown) => void;
 };
 
-const zones = new Set(['1. Aguho', '2. Martinez-Poblacion']);
+const zones = new Set(['1. Aguho', '2. Martirez', '3. Poblacion']);
 const preferredTimes = new Set(['morning', 'afternoon', 'no preference']);
 
 let database: ReturnType<typeof createClient> | undefined;

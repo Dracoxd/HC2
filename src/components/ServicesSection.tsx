@@ -19,6 +19,7 @@ const categories = [
   { id: 'xray', label: 'X-RAY' },
   { id: 'nutrition', label: 'CHILD NUTRITION' },
   { id: 'pharmacy', label: 'MEDICINES' },
+  { id: 'antigen_testing', label: 'COVID-19 ANTIGEN' },
 ];
 
 const serviceImages: Partial<Record<ServiceDetail['category'], string>> = {

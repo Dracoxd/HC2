@@ -21,7 +21,7 @@ export const translations = {
 
 
     heroTitle: 'Quintin De Borja Health Center',
-    heroSubtitle: 'Serving Aguho and Martinez-Poblacion in Pateros. Available services include consultation, prenatal and postnatal care, family planning, immunization, dental services, TB-DOTS, and COVID-19 antigen testing.',
+    heroSubtitle: 'Serving Aguho, Martirez, and Poblacion in Pateros. Available services include consultation, prenatal and postnatal care, family planning, immunization, dental services, TB-DOTS, and COVID-19 antigen testing.',
     heroCtaPrimary: 'Book Outreach Appointment',
     heroCtaSecondary: 'View Services',
 
@@ -53,10 +53,10 @@ export const translations = {
 
 
     zonesTitle: 'Covered Areas',
-    zonesSubtitle: '1. Aguho, 2. Martinez-Poblacion.',
+    zonesSubtitle: '1. Aguho, 2. Martirez, 3. Poblacion.',
     zoneSanPedro: '1. Aguho',
-    zoneMagtanggol: '2. Martinez-Poblacion',
-    zoneTabacalera: '',
+    zoneMagtanggol: '2. Martirez',
+    zoneTabacalera: '3. Poblacion',
     labelAssignedBNS: 'Barangay Nutrition Scholars (BNS)',
     labelAssignedMidwife: 'Midwife',
     labelAssignedNurse: 'Nurse',
@@ -145,7 +145,7 @@ export const translations = {
     hotlineHealthCenter: 'Center Landline: (02) 8642-1923',
 
 
-    footerDescription: 'Serving Aguho and Martinez-Poblacion in Pateros.',
+    footerDescription: 'Serving Aguho, Martirez, and Poblacion in Pateros.',
     footerQuickLinks: 'Quick Links',
     footerHoursNotice: 'Monday and Wednesday: 8:00 AM-5:00 PM | Duty personnel: Tue-Fri, 8:00-11:00 AM.',
     copyright: 'Quintin De Borja Health Center · Pateros.'
@@ -172,7 +172,7 @@ export const translations = {
 
 
     heroTitle: 'Quintin De Borja Health Center',
-    heroSubtitle: 'Naglilingkod sa Aguho at Martinez-Poblacion sa Pateros. Kasama sa serbisyo ang konsultasyon, prenatal at postnatal check-up, family planning, immunization, dental services, TB-DOTS, at COVID-19 antigen testing.',
+    heroSubtitle: 'Naglilingkod sa Aguho, Martirez, at Poblacion sa Pateros. Kasama sa serbisyo ang konsultasyon, prenatal at postnatal check-up, family planning, immunization, dental services, TB-DOTS, at COVID-19 antigen testing.',
     heroCtaPrimary: 'Magpa-iskedyul ng Outreach',
     heroCtaSecondary: 'Tingnan ang Serbisyo',
 
@@ -204,10 +204,10 @@ export const translations = {
 
 
     zonesTitle: 'Mga Sakop na Lugar',
-    zonesSubtitle: '1. Aguho, 2. Martinez-Poblacion.',
+    zonesSubtitle: '1. Aguho, 2. Martirez, 3. Poblacion.',
     zoneSanPedro: '1. Aguho',
-    zoneMagtanggol: '2. Martinez-Poblacion',
-    zoneTabacalera: '',
+    zoneMagtanggol: '2. Martirez',
+    zoneTabacalera: '3. Poblacion',
     labelAssignedBNS: 'Barangay Nutrition Scholars (BNS)',
     labelAssignedMidwife: 'Kumadrona',
     labelAssignedNurse: 'Nars',
@@ -296,7 +296,7 @@ export const translations = {
     hotlineHealthCenter: 'Telepono ng Center: (02) 8642-1923',
 
 
-    footerDescription: 'Naglilingkod sa Aguho at Martinez-Poblacion sa Pateros.',
+    footerDescription: 'Naglilingkod sa Aguho, Martirez, at Poblacion sa Pateros.',
     footerQuickLinks: 'Mabilisang Link',
     footerHoursNotice: 'Lunes at Miyerkules: 8:00 AM-5:00 PM | Duty personnel: Martes-Biyernes, 8:00-11:00 AM.',
     copyright: 'Quintin De Borja Health Center · Pateros.'

@@ -43,7 +43,7 @@ export const ContactSection: React.FC = () => {
             <div>
               <h3 className="text-sm font-bold text-slate-900">Quintin De Borja Health Center</h3>
               <p className="mt-1 text-sm text-slate-600">Municipality of Pateros, Metro Manila</p>
-              <p className="mt-1 text-sm text-slate-600">Serving Aguho and Martinez-Poblacion</p>
+              <p className="mt-1 text-sm text-slate-600">Serving Aguho, Martirez, and Poblacion</p>
             </div>
           </div>
 

@@ -299,7 +299,7 @@ export const OutreachBookingModal: React.FC<{ user: User }> = ({ user }) => {
               <div>
                 <label htmlFor="appointment-zone" className="block text-sm font-semibold text-slate-800 mb-1.5">{t.formZone} *</label>
                 <select id="appointment-zone" required value={zone} onChange={(event) => setZone(event.target.value)} className="w-full px-3.5 py-3 border border-slate-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-teal-700">
-                  <option>1. Aguho</option><option>2. Martinez-Poblacion</option>
+                  <option>1. Aguho</option><option>2. Martirez</option><option>3. Poblacion</option>
                 </select>
               </div>
               <div>

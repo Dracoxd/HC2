@@ -17,8 +17,8 @@ export const DEFAULT_CLINIC_PUBLIC_SETTINGS: ClinicPublicSettings = {
   xrayHoursFil: 'Walang nakalistang serbisyo ng X-ray sa Quintin De Borja Health Center',
   dentalHours: 'Mon-Tue: Quintin De Borja; Wednesday: Dental Outreach; Thu-Fri: Delfin Salonga',
   dentalHoursFil: 'Lunes-Martes: Quintin De Borja; Miyerkules: Dental Outreach; Huwebes-Biyernes: Delfin Salonga',
-  clinicAddress: 'Aguho, Martinez-Poblacion, Pateros, Metro Manila',
-  clinicAddressFil: 'Aguho, Martinez-Poblacion, Pateros, Metro Manila',
+  clinicAddress: 'Aguho, Martirez, Poblacion, Pateros, Metro Manila',
+  clinicAddressFil: 'Aguho, Martirez, Poblacion, Pateros, Metro Manila',
   contactPhone: 'No hotline available',
   contactEmail: '',
   emergencyPhone: '',
@@ -67,9 +67,9 @@ export const STAFF_DIRECTORY: StaffMember[] = [
   { id: 'qd-7', name: 'Ms. Etheyl L. Mollo', title: 'Etheyl L. Mollo', role: 'Midwife II', roleFil: 'Midwife II', department: 'nursing_midwifery', departmentName: 'Maternal and Child Health', qualifications: 'Midwife II', schedule: 'Contact the health center for current availability', scheduleFil: 'Makipag-ugnayan sa health center para sa kasalukuyang availability', location: 'Quintin De Borja Health Center', avatarInitials: 'EM' },
   { id: 'qd-8', name: 'Ms. Zenaida E. Tungol', title: 'Zenaida E. Tungol', role: 'Barangay Nutrition Scholar (BNS)', roleFil: 'Barangay Nutrition Scholar (BNS)', department: 'nutrition_bns', departmentName: 'Barangay Nutrition Services', qualifications: 'Barangay Nutrition Scholar', schedule: 'Contact the health center for current availability', scheduleFil: 'Makipag-ugnayan sa health center para sa kasalukuyang availability', location: 'Quintin De Borja Health Center', avatarInitials: 'ZT' },
   { id: 'qd-9', name: 'Ms. Leah R. Mirabel', title: 'Leah R. Mirabel', role: 'Barangay Nutrition Scholar (BNS)', roleFil: 'Barangay Nutrition Scholar (BNS)', department: 'nutrition_bns', departmentName: 'Barangay Nutrition Services', qualifications: 'Barangay Nutrition Scholar', schedule: 'Contact the health center for current availability', scheduleFil: 'Makipag-ugnayan sa health center para sa kasalukuyang availability', location: 'Quintin De Borja Health Center', avatarInitials: 'LM' },
-  { id: 'qd-10', name: 'Ms. Luzviminda F. Mesina', title: 'Luzviminda F. Mesina', role: 'Barangay Nutrition Scholar (BNS)', roleFil: 'Barangay Nutrition Scholar (BNS)', department: 'nutrition_bns', departmentName: 'Barangay Nutrition Services', qualifications: 'Barangay Nutrition Scholar', schedule: 'Contact the health center for current availability', scheduleFil: 'Makipag-ugnayan sa health center para sa kasalukuyang availability', location: 'Quintin De Borja Health Center', avatarInitials: 'LM' },
-  { id: 'qd-11', name: 'Ms. Eliza A. Gapayao', title: 'Eliza A. Gapayao', role: 'Dental Aide', roleFil: 'Dental Aide', department: 'admin_support', departmentName: 'Dental Clinic', qualifications: 'Dental Aide', schedule: 'Monday and Tuesday at Quintin De Borja', scheduleFil: 'Lunes at Martes sa Quintin De Borja', location: 'Quintin De Borja Health Center', avatarInitials: 'EG' },
-  { id: 'qd-12', name: 'Ms. Marian P. Salonga', title: 'Marian P. Salonga', role: 'Utility Worker / Barangay Nutrition Scholar (BNS)', roleFil: 'Utility Worker / Barangay Nutrition Scholar (BNS)', department: 'admin_support', departmentName: 'Support and Nutrition Services', qualifications: 'Utility Worker / Barangay Nutrition Scholar', schedule: 'Contact the health center for current availability', scheduleFil: 'Makipag-ugnayan sa health center para sa kasalukuyang availability', location: 'Quintin De Borja Health Center', avatarInitials: 'MS' }
+  { id: 'qd-10', name: 'Ms. Luzviminda F. Mesina', title: 'Luzviminda F. Mesina', role: 'Dental Aide', roleFil: 'Dental Aide', department: 'dental', departmentName: 'Dental Clinic', qualifications: 'Dental Aide', schedule: 'Monday and Tuesday at Quintin De Borja', scheduleFil: 'Lunes at Martes sa Quintin De Borja', location: 'Quintin De Borja Health Center', avatarInitials: 'LM' },
+  { id: 'qd-11', name: 'Ms. Eliza A. Gapayao', title: 'Eliza A. Gapayao', role: 'Utility Worker', roleFil: 'Utility Worker', department: 'admin_support', departmentName: 'Support Services', qualifications: 'Utility Worker', schedule: 'Contact the health center for current availability', scheduleFil: 'Makipag-ugnayan sa health center para sa kasalukuyang availability', location: 'Quintin De Borja Health Center', avatarInitials: 'EG' },
+  { id: 'qd-12', name: 'Ms. Marian P. Salonga', title: 'Marian P. Salonga', role: 'Barangay Nutrition Scholar (BNS)', roleFil: 'Barangay Nutrition Scholar (BNS)', department: 'nutrition_bns', departmentName: 'Barangay Nutrition Services', qualifications: 'Barangay Nutrition Scholar', schedule: 'Contact the health center for current availability', scheduleFil: 'Makipag-ugnayan sa health center para sa kasalukuyang availability', location: 'Quintin De Borja Health Center', avatarInitials: 'MS' }
 ];
 
 export const SERVICES_DATA: ServiceDetail[] = [
@@ -122,7 +122,7 @@ export const SERVICES_DATA: ServiceDetail[] = [
     schedule: 'Mon-Tue: QDB | Wed: Outreach | Thu-Fri: Delfin Salonga',
     scheduleFil: 'Lunes-Martes: QDB | Miyerkules: Outreach | Huwebes-Biyernes: Delfin Salonga',
     location: 'Rotating dental locations in Pateros',
-    keyPersonnel: ['Chevily C. Reyes, DMD (Dentist III)', 'Ms. Eliza A. Gapayao (Dental Aide)'],
+    keyPersonnel: ['Chevily C. Reyes, DMD (Dentist III)', 'Ms. Luzviminda F. Mesina (Dental Aide)', 'Ms. Eliza A. Gapayao (Utility Worker)'],
     requirements: ['Valid ID / Health Card'],
     requirementsFil: ['Valid ID o Health Card'],
     image: DENTAL_IMAGE,
@@ -164,6 +164,24 @@ export const SERVICES_DATA: ServiceDetail[] = [
     requirementsFil: ['Valid ID o Patunay ng Tirahan', 'Kasalukuyang iniinom na gamot kung mayroon'],
     badge: 'Nurse/Midwife Check-Up',
     badgeFil: 'Check-Up ng Nurse/Midwife'
+  },
+  {
+    id: 'antigen-testing',
+    title: 'COVID-19 Antigen Testing',
+    titleFil: 'COVID-19 Antigen Testing',
+    shortDesc: 'COVID-19 antigen testing is available every Thursday from 9:30 to 10:00 AM.',
+    shortDescFil: 'Ang COVID-19 antigen testing ay tuwing Huwebes mula 9:30 hanggang 10:00 AM.',
+    fullDesc: 'COVID-19 antigen testing is conducted every Thursday from 9:30 to 10:00 AM. Confirm current availability with the health center before visiting.',
+    fullDescFil: 'Ang COVID-19 antigen testing ay isinasagawa tuwing Huwebes mula 9:30 hanggang 10:00 AM. Kumpirmahin muna ang availability sa health center bago pumunta.',
+    category: 'antigen_testing',
+    schedule: 'Thursday, 9:30 AM-10:00 AM',
+    scheduleFil: 'Huwebes, 9:30 AM-10:00 AM',
+    location: 'Quintin De Borja Health Center',
+    keyPersonnel: ['Quintin De Borja Health Center staff'],
+    requirements: ['Valid ID', 'Health center screening instructions'],
+    requirementsFil: ['Valid ID', 'Mga tagubilin sa screening ng health center'],
+    badge: 'Thursday Testing',
+    badgeFil: 'Testing tuwing Huwebes'
   },
   {
     id: 'xray',
@@ -301,8 +319,20 @@ export const ZONES_COVERAGE: ZoneCoverage[] = [
     coverageRate: 'Covered'
   },
   {
-    id: 'martinez_poblacion',
-    name: '2. Martinez-Poblacion',
+    id: 'martirez',
+    name: '2. Martirez',
+    poblacion: 'Pateros',
+    assignedBNS: ['Assigned Barangay Nutrition Scholar'],
+    assignedMidwife: 'Contact the health center',
+    designatedNurse: 'Contact the health center',
+    communityOutreachDays: 'Confirm with the health center',
+    communityOutreachDaysFil: 'Kumpirmahin sa health center',
+    activePatients: 0,
+    coverageRate: 'Covered'
+  },
+  {
+    id: 'poblacion',
+    name: '3. Poblacion',
     poblacion: 'Pateros',
     assignedBNS: ['Assigned Barangay Nutrition Scholar'],
     assignedMidwife: 'Contact the health center',
@@ -321,7 +351,7 @@ export const OUTREACH_PROGRAMS: OutreachProgram[] = [
     titleFil: 'Operation Timbang (OPT) - Mga Bata 0-59 Buwan',
     description: 'Nutrition screening for children aged 0-59 months, including weight, height, and nutritional status.',
     descriptionFil: 'Pagsusuri sa timbang, tangkad, at nutritional status ng mga batang 0-59 buwan.',
-    targetBarangay: 'Aguho, Martinez-Poblacion',
+    targetBarangay: 'Aguho, Martirez, Poblacion',
     scheduleDate: 'January - March',
     timeWindow: 'Confirm with the health center',
     location: 'Quintin De Borja Health Center',
@@ -337,7 +367,7 @@ export const OUTREACH_PROGRAMS: OutreachProgram[] = [
     titleFil: 'Rotation ng Dental Clinic',
     description: 'Monday and Tuesday at Quintin De Borja, Wednesday at Dental Outreach, and Thursday-Friday at Delfin Salonga.',
     descriptionFil: 'Lunes at Martes sa Quintin De Borja, Miyerkules sa Dental Outreach, at Huwebes-Biyernes sa Delfin Salonga.',
-    targetBarangay: 'Aguho, Martinez-Poblacion',
+    targetBarangay: 'Aguho, Martirez, Poblacion',
     scheduleDate: 'Monday - Friday',
     timeWindow: 'Confirm with the assigned dental clinic',
     location: 'Quintin De Borja, Dental Outreach, or Delfin Salonga',
@@ -415,7 +445,8 @@ export const ANALYTICS_DATA = {
   freePrescriptionsDispensed: 4210,
   zoneDistribution: [
     { name: '1. Aguho', count: 0, percentage: 50.0 },
-    { name: '2. Martinez-Poblacion', count: 0, percentage: 50.0 }
+    { name: '2. Martirez', count: 0, percentage: 33.3 },
+    { name: '3. Poblacion', count: 0, percentage: 33.4 }
   ],
   serviceBreakdown: [
     { service: 'Check Up (OPD)', patients: 612, share: '33.2%' },
