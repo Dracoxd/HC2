@@ -37,7 +37,7 @@ export const PatientPortal: React.FC = () => {
   const [regName, setRegName] = useState('');
   const [regDob, setRegDob] = useState('1990-01-01');
   const [regGender, setRegGender] = useState('Female');
-  const [regZone, setRegZone] = useState('2. Magtanggol');
+  const [regZone, setRegZone] = useState('2. Martinez-Poblacion');
   const [regPhone, setRegPhone] = useState('+63 9');
   const [regPhilHealth, setRegPhilHealth] = useState('');
   const [regCategory, setRegCategory] = useState<'maternal' | 'senior_maintenance' | 'pediatric_opt'>('maternal');
@@ -155,8 +155,8 @@ export const PatientPortal: React.FC = () => {
                   </h3>
                   <p className="text-xs text-slate-600 mt-1">
                     {language === 'fil'
-                      ? 'Magrehistro ng bagong rekord o pumili mula sa mga nai-save na pasyente sa San Pedro, Magtanggol, o Tabacalera.'
-                      : 'Register a patient record or select from saved patient records in San Pedro, Magtanggol, or Tabacalera.'}
+                      ? 'Magrehistro ng bagong rekord o pumili mula sa mga nai-save na pasyente sa Aguho o Martinez-Poblacion.'
+                      : 'Register a patient record or select from saved patient records in Aguho or Martinez-Poblacion.'}
                   </p>
                 </div>
 
@@ -261,9 +261,8 @@ export const PatientPortal: React.FC = () => {
                       onChange={(e) => setRegZone(e.target.value)}
                       className="w-full px-3 py-2 bg-white border border-slate-300 rounded-lg text-slate-900 focus:outline-none focus:ring-2 focus:ring-teal-700"
                     >
-                      <option value="1. San Pedro">1. San Pedro</option>
-                      <option value="2. Magtanggol">2. Magtanggol</option>
-                      <option value="3. Tabacalera">3. Tabacalera</option>
+                      <option value="1. Aguho">1. Aguho</option>
+                      <option value="2. Martinez-Poblacion">2. Martinez-Poblacion</option>
                     </select>
                   </div>
 
@@ -591,7 +590,7 @@ export const PatientPortal: React.FC = () => {
                         <div className="text-slate-600">{rx.dosage} · {rx.frequency}</div>
                         <div className="text-[11px] text-slate-400 pt-1 border-t border-slate-100 flex justify-between">
                           <span>Refill: {rx.nextRefillDate}</span>
-                          <span>Dr. Tiffany Almuros</span>
+                          <span>Quintin De Borja duty personnel</span>
                         </div>
                       </div>
                     ))}
@@ -608,7 +607,7 @@ export const PatientPortal: React.FC = () => {
             {activeTab === 'messaging' && (
               <div className="rounded-xl border border-slate-200 bg-white overflow-hidden flex flex-col h-[400px]">
                 <div className="p-3 bg-slate-50 border-b border-slate-200 text-xs font-semibold text-slate-700 flex justify-between items-center">
-                  <span>Mr. Flores Health Center Desk (Mon-Fri 7AM-4PM)</span>
+                  <span>Quintin De Borja Health Center Desk</span>
                   <span className="text-[10px] text-slate-500">{activePatient.zone}</span>
                 </div>
 

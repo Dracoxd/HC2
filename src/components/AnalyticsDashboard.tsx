@@ -136,7 +136,7 @@ export const AnalyticsDashboard: React.FC = () => {
             <div className="flex items-center justify-between border-b border-slate-100 pb-3">
               <div>
                 <h3 className="text-base font-bold text-slate-900">{t.chartZoneFootfall}</h3>
-                <p className="text-xs text-slate-500">San Pedro, Magtanggol, and Tabacalera breakdown</p>
+                <p className="text-xs text-slate-500">Aguho and Martinez-Poblacion breakdown</p>
               </div>
               <span className="text-xs text-teal-800 font-semibold">98.3% Total Reach</span>
             </div>

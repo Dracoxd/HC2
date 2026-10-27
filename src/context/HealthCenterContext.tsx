@@ -491,7 +491,7 @@ export const HealthCenterProvider: React.FC<{ children: React.ReactNode }> = ({ 
       prescribedDate: new Date().toISOString().split('T')[0],
       nextRefillDate: 'Next Month (30-day supply)',
       status: 'Available for Pick-up' as const,
-      prescribedBy: 'Tiffany Almuros (Head of Doctors)'
+      prescribedBy: 'Quintin De Borja duty personnel'
     };
 
     void fetch('/api/health-data', {
@@ -547,7 +547,7 @@ export const HealthCenterProvider: React.FC<{ children: React.ReactNode }> = ({ 
         id: `m-${Date.now() + 1}`,
         sender: 'staff',
         senderName: 'Ms. Sery Ann G. Ulanday, RN / Clinic Desk',
-        senderRole: 'Mr. Flores Health Center',
+        senderRole: 'Quintin De Borja Health Center',
         text: language === 'fil'
           ? `Natanggap po namin ang mensahe para sa ${activePatient.fullName} (${activePatient.zone}). Bukas ang center Lunes hanggang Biyernes 7AM-4PM.`
           : `We received your inquiry for ${activePatient.fullName} (${activePatient.zone}). The center is open Monday to Friday, 7:00 AM - 4:00 PM.`,

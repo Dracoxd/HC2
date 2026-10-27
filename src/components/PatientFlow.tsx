@@ -45,12 +45,12 @@ export const PatientFlow: React.FC = () => {
                 <li>{isFilipino ? 'Kumain ng almusal; maligo at magsipilyo.' : 'Eat breakfast, bathe, and brush your teeth.'}</li>
                 <li>{isFilipino ? 'Magsuot ng malinis na damit; bawal ang sando.' : 'Wear clean clothes; tank tops are not allowed.'}</li>
                 <li>{isFilipino ? 'Magdala ng bimpo o panyo.' : 'Bring a small towel or handkerchief.'}</li>
-                <li>{isFilipino ? 'Edad 19 pataas: magpa-blood pressure sa Admission Area, 3rd floor.' : 'Age 19+: have your blood pressure checked at the 3rd-floor Admission Area.'}</li>
+                <li>{isFilipino ? 'Edad 19 pataas: magpa-blood pressure sa reception desk.' : 'Age 19+: have your blood pressure checked at the reception desk.'}</li>
               </ul>
             </details>
             <div className="py-4">
-              <h3 className="text-base font-bold uppercase text-slate-900">Pateros X-ray Clinic</h3>
-              <p className="mt-1 text-sm text-slate-600">{isFilipino ? 'Lunes 8:00-10:00 AM; Martes-Biyernes 7:00-10:00 AM. 3rd floor.' : 'Monday 8:00-10:00 AM; Tuesday-Friday 7:00-10:00 AM. 3rd floor.'}</p>
+              <h3 className="text-base font-bold uppercase text-slate-900">X-Ray Referral</h3>
+              <p className="mt-1 text-sm text-slate-600">{isFilipino ? 'Walang nakalistang X-ray service sa Quintin De Borja. Magtanong sa kawani para sa referral.' : 'No X-ray service is listed at Quintin De Borja. Ask clinic staff for referral information.'}</p>
               <p className="mt-1 text-sm text-slate-600">{isFilipino ? '2:00 PM ang release ng resulta. Kumpirmahin sa X-ray desk ang araw ng pagkuha kapag nagsumite ng request.' : 'Results are released at 2:00 PM. Confirm the pickup day with the X-ray desk when submitting your request.'}</p>
             </div>
             <div className="py-4">

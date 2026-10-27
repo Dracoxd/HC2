@@ -62,7 +62,7 @@ export interface MedicationStock {
 }
 
 export interface ZoneCoverage {
-  id: 'san_pedro' | 'magtanggol' | 'tabacalera';
+  id: 'aguho' | 'martinez_poblacion';
   name: string;
   poblacion: string;
   assignedBNS: string[];

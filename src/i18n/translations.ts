@@ -31,10 +31,10 @@ export const translations = {
     serviceTabAll: 'All Services',
     serviceTabMaternal: 'Maternity / Pregnant',
     serviceTabNutrition: 'Nutrition (BNS)',
-    serviceTabDental: 'Dental (M-W-F)',
+    serviceTabDental: 'Dental Rotation',
     serviceTabRabies: 'Animal Bite',
     serviceTabOPD: 'Check Up',
-    serviceTabXray: 'X-RAY CLINIC (3rd Floor)',
+    serviceTabXray: 'X-RAY REFERRAL',
     serviceTabMeds: 'Meds (Maintenance & TB)',
     labelSchedule: 'Time / Schedule',
     labelLocation: 'Location',
@@ -52,11 +52,11 @@ export const translations = {
     filterTB: 'TB Program',
 
 
-    zonesTitle: 'Covered Zones (Zones na Sakop)',
-    zonesSubtitle: '1. San Pedro, 2. Magtanggol, 3. Tabacalera.',
-    zoneSanPedro: '1. San Pedro',
-    zoneMagtanggol: '2. Magtanggol',
-    zoneTabacalera: '3. Tabacalera',
+    zonesTitle: 'Covered Areas',
+    zonesSubtitle: '1. Aguho, 2. Martinez-Poblacion.',
+    zoneSanPedro: '1. Aguho',
+    zoneMagtanggol: '2. Martinez-Poblacion',
+    zoneTabacalera: '',
     labelAssignedBNS: 'Barangay Nutrition Scholars (BNS)',
     labelAssignedMidwife: 'Midwife',
     labelAssignedNurse: 'Nurse',
@@ -145,10 +145,10 @@ export const translations = {
     hotlineHealthCenter: 'Center Landline: (02) 8642-1923',
 
 
-    footerDescription: 'Serving San Pedro, Magtanggol, and Tabacalera in Pateros.',
+    footerDescription: 'Serving Aguho and Martinez-Poblacion in Pateros.',
     footerQuickLinks: 'Quick Links',
-    footerHoursNotice: 'Monday to Friday: 7:00 AM - 4:00 PM | Clinic Hours: Mon 8AM - 3PM, Tues - Fri 9AM - 3PM.',
-    copyright: 'Mayor Moises R. Flores Health Center · Pateros.'
+    footerHoursNotice: 'Monday and Wednesday: 8:00 AM-5:00 PM | Duty personnel: Tue-Fri, 8:00-11:00 AM.',
+    copyright: 'Quintin De Borja Health Center · Pateros.'
   },
   fil: {
     brand: 'Quintin De Borja Health Center',
@@ -182,10 +182,10 @@ export const translations = {
     serviceTabAll: 'Lahat',
     serviceTabMaternal: 'Maternity / Buntis',
     serviceTabNutrition: 'Nutrisyon (BNS)',
-    serviceTabDental: 'Dental (M-W-F)',
+    serviceTabDental: 'Rotation ng Dental',
     serviceTabRabies: 'Animal Bite',
     serviceTabOPD: 'Check Up',
-    serviceTabXray: 'X-RAY CLINIC (3rd Floor)',
+    serviceTabXray: 'X-RAY REFERRAL',
     serviceTabMeds: 'Mga Gamot',
     labelSchedule: 'Oras / Iskedyul',
     labelLocation: 'Lugar',
@@ -203,11 +203,11 @@ export const translations = {
     filterTB: 'TB Program',
 
 
-    zonesTitle: 'Zones na Sakop',
-    zonesSubtitle: '1. San Pedro, 2. Magtanggol, 3. Tabacalera.',
-    zoneSanPedro: '1. San Pedro',
-    zoneMagtanggol: '2. Magtanggol',
-    zoneTabacalera: '3. Tabacalera',
+    zonesTitle: 'Mga Sakop na Lugar',
+    zonesSubtitle: '1. Aguho, 2. Martinez-Poblacion.',
+    zoneSanPedro: '1. Aguho',
+    zoneMagtanggol: '2. Martinez-Poblacion',
+    zoneTabacalera: '',
     labelAssignedBNS: 'Barangay Nutrition Scholars (BNS)',
     labelAssignedMidwife: 'Kumadrona',
     labelAssignedNurse: 'Nars',
@@ -296,9 +296,9 @@ export const translations = {
     hotlineHealthCenter: 'Telepono ng Center: (02) 8642-1923',
 
 
-    footerDescription: 'Naglilingkod sa San Pedro, Magtanggol, at Tabacalera sa Pateros.',
+    footerDescription: 'Naglilingkod sa Aguho at Martinez-Poblacion sa Pateros.',
     footerQuickLinks: 'Mabilisang Link',
-    footerHoursNotice: 'Lunes hanggang Biyernes: 7:00 AM - 4:00 PM | Clinic Hours: Lunes 8AM - 3PM, Martes - Biyernes 9AM - 3PM.',
-    copyright: 'Mayor Moises R. Flores Health Center · Pateros.'
+    footerHoursNotice: 'Lunes at Miyerkules: 8:00 AM-5:00 PM | Duty personnel: Martes-Biyernes, 8:00-11:00 AM.',
+    copyright: 'Quintin De Borja Health Center · Pateros.'
   }
 };

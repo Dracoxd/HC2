@@ -46,7 +46,7 @@ export const OutreachBookingModal: React.FC<{ user: User }> = ({ user }) => {
   const [patientName, setPatientName] = useState('');
   const [phone, setPhone] = useState('');
   const [email, setEmail] = useState('');
-  const [zone, setZone] = useState('1. San Pedro');
+  const [zone, setZone] = useState('1. Aguho');
   const [preferredDate, setPreferredDate] = useState(localDateString);
   const [preferredTime, setPreferredTime] = useState('morning');
   const [privacyConsent, setPrivacyConsent] = useState(false);
@@ -299,7 +299,7 @@ export const OutreachBookingModal: React.FC<{ user: User }> = ({ user }) => {
               <div>
                 <label htmlFor="appointment-zone" className="block text-sm font-semibold text-slate-800 mb-1.5">{t.formZone} *</label>
                 <select id="appointment-zone" required value={zone} onChange={(event) => setZone(event.target.value)} className="w-full px-3.5 py-3 border border-slate-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-teal-700">
-                  <option>1. San Pedro</option><option>2. Magtanggol</option><option>3. Tabacalera</option>
+                  <option>1. Aguho</option><option>2. Martinez-Poblacion</option>
                 </select>
               </div>
               <div>

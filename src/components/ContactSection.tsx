@@ -43,7 +43,7 @@ export const ContactSection: React.FC = () => {
             <div>
               <h3 className="text-sm font-bold text-slate-900">Quintin De Borja Health Center</h3>
               <p className="mt-1 text-sm text-slate-600">Municipality of Pateros, Metro Manila</p>
-              <p className="mt-1 text-sm text-slate-600">Serving San Pedro, Magtanggol, and Tabacalera</p>
+              <p className="mt-1 text-sm text-slate-600">Serving Aguho and Martinez-Poblacion</p>
             </div>
           </div>
 
@@ -51,9 +51,9 @@ export const ContactSection: React.FC = () => {
             <Clock className="w-5 h-5 text-teal-800 shrink-0 mt-1" />
             <div>
               <h3 className="text-sm font-bold text-slate-900">Clinic schedules</h3>
-              <p className="mt-1 text-sm text-slate-600">Doctors: Mon 8 AM-3 PM · Tue-Fri 9 AM-3 PM</p>
-              <p className="mt-1 text-sm text-slate-600">X-ray: Mon-Fri 7 AM-10 AM · 3rd floor</p>
-              <p className="mt-1 text-sm text-slate-600">Dental: Monday, Wednesday, Friday</p>
+              <p className="mt-1 text-sm text-slate-600">No permanent doctor; duty personnel Tue-Fri, 8-11 AM</p>
+              <p className="mt-1 text-sm text-slate-600">No X-ray service listed</p>
+              <p className="mt-1 text-sm text-slate-600">Dental: Mon-Tue QDB · Wed Outreach · Thu-Fri Delfin Salonga</p>
             </div>
           </div>
         </div>
