@@ -96,7 +96,13 @@ export default function App() {
           headers: { Authorization: `Bearer ${token}` },
           cache: 'no-store',
         });
-        const data = await response.json() as { role?: string; error?: string };
+        const responseBody = await response.text();
+        let data: { role?: string; error?: string } = {};
+        try {
+          data = JSON.parse(responseBody) as { role?: string; error?: string };
+        } catch {
+          throw new Error(responseBody.trim() || `Server responded with status ${response.status}.`);
+        }
         if (!response.ok || (data.role !== 'admin' && data.role !== 'user')) {
           throw new Error(data.error || 'Your account role could not be verified.');
         }
