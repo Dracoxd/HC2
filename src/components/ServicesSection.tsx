@@ -11,16 +11,16 @@ import medicinesImage from '../assets/images/QUINTIN.png';
 import xrayImage from '../assets/images/QUINTIN.png';
 
 const categories = [
-  { id: 'all', label: 'ALL SERVICES' },
-  { id: 'checkup', label: 'DOCTOR VISIT' },
-  { id: 'maternity', label: 'MATERNITY' },
-  { id: 'dental', label: 'DENTAL' },
-  { id: 'animal_bite', label: 'ANIMAL BITE' },
-  { id: 'xray', label: 'X-RAY' },
-  { id: 'nutrition', label: 'CHILD NUTRITION' },
-  { id: 'pharmacy', label: 'MEDICINES' },
-  { id: 'antigen_testing', label: 'COVID-19 ANTIGEN' },
-];
+  { id: 'all', label: 'serviceTabAll' },
+  { id: 'checkup', label: 'serviceTabOPD' },
+  { id: 'maternity', label: 'serviceTabMaternal' },
+  { id: 'dental', label: 'serviceTabDental' },
+  { id: 'animal_bite', label: 'serviceTabRabies' },
+  { id: 'xray', label: 'serviceTabXray' },
+  { id: 'nutrition', label: 'serviceTabNutrition' },
+  { id: 'pharmacy', label: 'serviceTabMeds' },
+  { id: 'antigen_testing', label: 'serviceTabCovid' },
+] as const;
 
 const serviceImages: Partial<Record<ServiceDetail['category'], string>> = {
   animal_bite: animalBiteImage,
@@ -48,15 +48,16 @@ export const ServicesSection: React.FC = () => {
   const { t, language, openBookingForProgram, clinicOpen, appointmentRequestAvailability, siteContent } = useHealthCenter();
   const bookingEnabled = clinicOpen === true && appointmentRequestAvailability === 'available';
   const bookingLabel = appointmentRequestAvailability === 'pending'
-    ? 'Appointment under review'
+    ? t.serviceAppointmentUnderReview
     : appointmentRequestAvailability === 'checking'
-      ? 'Checking request status'
+      ? t.serviceCheckingRequestStatus
       : appointmentRequestAvailability === 'error'
-        ? 'Unable to check request'
-        : clinicOpen === true ? 'REQUEST AN APPOINTMENT' : clinicOpen === false ? 'CLOSED' : 'Checking availability';
+        ? t.serviceUnableToCheckRequest
+        : clinicOpen === true ? t.serviceRequestAppointment : clinicOpen === false ? t.serviceClosed : t.serviceCheckingAvailability;
 
   const [activeCategory, setActiveCategory] = useState('all');
-  const [selectedService, setSelectedService] = useState<ServiceDetail | null>(null);
+  const [selectedServiceId, setSelectedServiceId] = useState<string | null>(null);
+  const selectedService = siteContent.services.find((service) => service.id === selectedServiceId) ?? null;
   const filteredServices = activeCategory === 'all'
     ? siteContent.services
     : siteContent.services.filter((service) => service.category === activeCategory);
@@ -66,13 +67,13 @@ export const ServicesSection: React.FC = () => {
       <div className="max-w-7xl mx-auto px-5 sm:px-8 lg:px-12">
         <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-5 mb-8">
           <div className="max-w-2xl">
-            <div className="text-xs font-bold text-teal-800 uppercase mb-3">Health services</div>
+            <div className="text-xs font-bold text-teal-800 uppercase mb-3">{t.navServices}</div>
             <h2 className="text-3xl sm:text-4xl font-bold uppercase text-slate-950">{t.servicesTitle}</h2>
-            <p className="mt-3 text-base text-slate-600">Schedules, locations, and service requirements.</p>
+            <p className="mt-3 text-base text-slate-600">{t.servicesSubtitle}</p>
           </div>
         </div>
 
-        <div className="flex gap-1 overflow-x-auto border-y border-[#dfe6e1] mb-6" role="tablist" aria-label="Filter health services">
+        <div className="flex gap-1 overflow-x-auto border-y border-[#dfe6e1] mb-6" role="tablist" aria-label={t.serviceFilterLabel}>
           {categories.map((category) => (
             <button
               key={category.id}
@@ -81,7 +82,7 @@ export const ServicesSection: React.FC = () => {
               onClick={() => setActiveCategory(category.id)}
               className={`min-h-11 px-4 py-3 text-sm font-bold whitespace-nowrap border-b-2 transition-colors duration-200 ${activeCategory === category.id ? 'border-[#17645c] text-[#173a37]' : 'border-transparent text-[#66736f] hover:text-[#173a37]'}`}
             >
-              {category.label}
+              {t[category.label]}
             </button>
           ))}
         </div>
@@ -116,8 +117,8 @@ export const ServicesSection: React.FC = () => {
                 <div className="flex items-start gap-2"><Clock className="w-4 h-4 mt-0.5 text-[#17645c] shrink-0" /><span>{language === 'fil' ? service.scheduleFil : service.schedule}</span></div>
                 <div className="flex items-start gap-2"><MapPin className="w-4 h-4 mt-0.5 text-[#17645c] shrink-0" /><span>{service.location}</span></div>
               </div>
-              <button onClick={() => setSelectedService(service)} className="justify-self-start md:justify-self-end px-3 py-2 text-sm font-bold text-[#173a37] border-b border-[#17645c] hover:bg-[#eaf0ec]">
-                Details
+              <button onClick={() => setSelectedServiceId(service.id)} className="justify-self-start md:justify-self-end px-3 py-2 text-sm font-bold text-[#173a37] border-b border-[#17645c] hover:bg-[#eaf0ec]">
+                {t.btnViewRequirements}
               </button>
             </article>
           ))}
@@ -126,20 +127,20 @@ export const ServicesSection: React.FC = () => {
       </div>
 
       {selectedService && (
-        <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-slate-950/60 p-2 pt-[max(0.5rem,env(safe-area-inset-top))] pb-[max(0.5rem,env(safe-area-inset-bottom))] sm:items-center sm:p-4" onClick={() => setSelectedService(null)}>
+        <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-slate-950/60 p-2 pt-[max(0.5rem,env(safe-area-inset-top))] pb-[max(0.5rem,env(safe-area-inset-bottom))] sm:items-center sm:p-4" onClick={() => setSelectedServiceId(null)}>
           <section role="dialog" aria-modal="true" aria-labelledby="service-dialog-title" onClick={(event) => event.stopPropagation()} className="max-h-[calc(100dvh-1rem-env(safe-area-inset-top)-env(safe-area-inset-bottom))] w-full max-w-xl overflow-y-auto border border-[#dfe6e1] bg-[#fcfdfb] p-4 shadow-[0_18px_50px_rgba(23,58,55,0.28)] sm:max-h-[90vh] sm:p-8">
             <div className="flex items-start justify-between gap-4 border-b border-slate-200 pb-4">
               <div>
                 <div className="text-xs font-bold uppercase tracking-wider text-teal-800">{language === 'fil' ? selectedService.badgeFil : selectedService.badge}</div>
                 <h3 id="service-dialog-title" className="mt-1 text-2xl font-bold tracking-wide text-slate-950 uppercase">{language === 'fil' ? selectedService.titleFil : selectedService.title}</h3>
               </div>
-              <button onClick={() => setSelectedService(null)} aria-label="Close details" className="p-2 text-slate-500 hover:text-slate-900"><X className="w-5 h-5" /></button>
+              <button onClick={() => setSelectedServiceId(null)} aria-label={t.btnCloseArticle} className="p-2 text-slate-500 hover:text-slate-900"><X className="w-5 h-5" /></button>
             </div>
             <p className="py-5 text-sm leading-relaxed text-slate-700">{language === 'fil' ? selectedService.fullDescFil : selectedService.fullDesc}</p>
             <div className="grid sm:grid-cols-2 gap-4 border-y border-slate-200 py-4 text-sm">
-              <div><div className="font-bold text-slate-900">Schedule</div><p className="mt-1 text-slate-600">{language === 'fil' ? selectedService.scheduleFil : selectedService.schedule}</p></div>
-              <div><div className="font-bold text-slate-900">Location</div><p className="mt-1 text-slate-600">{selectedService.location}</p></div>
-              <div className="sm:col-span-2"><div className="font-bold text-slate-900">Care team</div><p className="mt-1 text-slate-600">{selectedService.keyPersonnel.join(', ')}</p></div>
+              <div><div className="font-bold text-slate-900">{t.labelSchedule}</div><p className="mt-1 text-slate-600">{language === 'fil' ? selectedService.scheduleFil : selectedService.schedule}</p></div>
+              <div><div className="font-bold text-slate-900">{t.labelLocation}</div><p className="mt-1 text-slate-600">{selectedService.location}</p></div>
+              <div className="sm:col-span-2"><div className="font-bold text-slate-900">{t.labelPersonnel}</div><p className="mt-1 text-slate-600">{selectedService.keyPersonnel.join(', ')}</p></div>
             </div>
             <button disabled={!bookingEnabled} onClick={() => openBookingForProgram(selectedService.id)} className="mt-6 inline-flex min-h-11 items-center justify-center px-4 py-3 bg-[#17645c] text-white text-sm font-bold rounded-sm hover:bg-[#104f49] disabled:cursor-not-allowed disabled:opacity-50">{bookingLabel}</button>
           </section>

@@ -59,9 +59,12 @@ export async function ensureSiteContent(db: ReturnType<typeof createClient>) {
     ];
     await db.batch([
       ...seeds.map(({ type, id, value }) => ({
-        sql: `INSERT OR IGNORE INTO public_site_content
+        sql: `INSERT INTO public_site_content
               (content_type, content_id, content_json, published, updated_at, updated_by)
-              VALUES (?, ?, ?, 1, ?, 'system-seed')`,
+              VALUES (?, ?, ?, 1, ?, 'system-seed')
+              ON CONFLICT(content_type, content_id) DO UPDATE SET
+                content_json = excluded.content_json, updated_at = excluded.updated_at
+              WHERE public_site_content.updated_by = 'system-seed'`,
         args: [type, id, JSON.stringify(value), now],
       })),
       ...Object.entries(DEFAULT_CLINIC_PUBLIC_SETTINGS).map(([key, value]) => ({
@@ -128,7 +131,7 @@ export function validateSiteContent(
     if (typeof value[field] !== 'string' || value[field].length > 5000) return null;
   }
   if (contentType === 'service') {
-    if (!['maternity', 'nutrition', 'dental', 'animal_bite', 'checkup', 'xray', 'pharmacy'].includes(String(value.category))) return null;
+    if (!['maternity', 'nutrition', 'dental', 'animal_bite', 'checkup', 'xray', 'pharmacy', 'antigen_testing'].includes(String(value.category))) return null;
     for (const field of ['keyPersonnel', 'requirements', 'requirementsFil']) {
       if (!Array.isArray(value[field]) || value[field].length > 50
         || value[field].some((entry) => typeof entry !== 'string' || entry.length > 300)) return null;
