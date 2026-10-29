@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useHealthCenter } from '../context/HealthCenterContext';
 import { AlertCircle, CalendarDays, CheckCircle2, Clock, X } from 'lucide-react';
 import type { User } from 'firebase/auth';
@@ -48,6 +48,8 @@ export const OutreachBookingModal: React.FC<{ user: User }> = ({ user }) => {
     siteContent,
   } = useHealthCenter();
   const services = siteContent.services;
+  const [formStep, setFormStep] = useState<1 | 2>(1);
+  const formRef = useRef<HTMLFormElement>(null);
   const [serviceId, setServiceId] = useState('checkup');
   const [patientName, setPatientName] = useState('');
   const [phone, setPhone] = useState('');
@@ -78,6 +80,7 @@ export const OutreachBookingModal: React.FC<{ user: User }> = ({ user }) => {
 
   useEffect(() => {
     if (!bookingModalOpen) {
+      setFormStep(1);
       setReceipt(null);
       setError('');
       setPatientName('');
@@ -225,6 +228,21 @@ export const OutreachBookingModal: React.FC<{ user: User }> = ({ user }) => {
     }
   };
 
+  const handleFormSubmit = (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    if (formStep === 1) {
+      if (!formRef.current?.reportValidity()) return;
+      if (!selectedService) {
+        setError(isFilipino ? 'Walang available na serbisyo para sa appointment request.' : 'No services are currently available for appointment requests.');
+        return;
+      }
+      setError('');
+      setFormStep(2);
+      return;
+    }
+    void handleSubmit(event);
+  };
+
   return (
     <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-slate-950/60 p-2 pt-[max(0.5rem,env(safe-area-inset-top))] pb-[max(0.5rem,env(safe-area-inset-bottom))] backdrop-blur-sm sm:items-center sm:p-4" onMouseDown={(event) => { if (event.target === event.currentTarget) handleClose(); }}>
       <section role="dialog" aria-modal="true" aria-labelledby="appointment-title" className="my-0 max-h-[calc(100dvh-1rem-env(safe-area-inset-top)-env(safe-area-inset-bottom))] w-full max-w-2xl overflow-y-auto bg-white shadow-2xl sm:my-5 sm:max-h-[92vh]">
@@ -274,7 +292,7 @@ export const OutreachBookingModal: React.FC<{ user: User }> = ({ user }) => {
               : 'Checking for pending appointment requests...')}
           </p>
         ) : (
-          <form onSubmit={handleSubmit} className="space-y-5 px-4 py-5 sm:px-7 sm:py-6">
+          <form ref={formRef} onSubmit={handleFormSubmit} className="space-y-5 px-4 py-5 sm:px-7 sm:py-6">
             {!canSubmitAppointment && (
               <p role="status" className="border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-semibold text-amber-900">
                 {clinicOpen === false
@@ -282,7 +300,20 @@ export const OutreachBookingModal: React.FC<{ user: User }> = ({ user }) => {
                   : (isFilipino ? 'Tinitingnan ang availability ng appointment...' : 'Checking appointment availability...')}
               </p>
             )}
-            <div className="grid sm:grid-cols-2 gap-4">
+            <div aria-label={isFilipino ? 'Hakbang sa appointment' : 'Appointment request steps'} className="space-y-2">
+              <div className="flex items-center justify-between text-xs font-bold text-slate-600">
+                <span>{isFilipino ? `Hakbang ${formStep} ng 2` : `Step ${formStep} of 2`}</span>
+                <span>{formStep === 1
+                  ? (isFilipino ? 'Impormasyon ng pasyente' : 'Patient details')
+                  : (isFilipino ? 'Iskedyul at pahintulot' : 'Schedule and consent')}</span>
+              </div>
+              <div role="progressbar" aria-valuemin={1} aria-valuemax={2} aria-valuenow={formStep} aria-label={isFilipino ? 'Pag-usad ng form' : 'Form progress'} className="h-1.5 overflow-hidden bg-slate-100">
+                <div className={`h-full bg-teal-800 transition-all ${formStep === 1 ? 'w-1/2' : 'w-full'}`} />
+              </div>
+            </div>
+
+            {formStep === 1 ? (
+            <div className="grid gap-4 sm:grid-cols-2">
               <div className="sm:col-span-2">
                 <label htmlFor="appointment-service" className="block text-sm font-semibold text-slate-800 mb-1.5">{isFilipino ? 'Serbisyo' : 'Service'}</label>
                 <select id="appointment-service" value={serviceId} onChange={(event) => setServiceId(event.target.value)} className="w-full px-3.5 py-3 bg-white border border-slate-300 rounded-md text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-teal-700">
@@ -308,6 +339,10 @@ export const OutreachBookingModal: React.FC<{ user: User }> = ({ user }) => {
                   <option value="1. Aguho">Aguho</option><option value="2. Martirez">Martirez</option><option value="3. Poblacion">Poblacion</option>
                 </select>
               </div>
+            </div>
+            ) : (
+            <>
+            <div className="grid gap-4 sm:grid-cols-2">
               <div>
                 <label htmlFor="appointment-date" className="block text-sm font-semibold text-slate-800 mb-1.5">{t.formDate} *</label>
                 <input id="appointment-date" required type="date" min={today} value={preferredDate} onChange={(event) => setPreferredDate(event.target.value)} className="w-full px-3.5 py-3 border border-slate-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-teal-700" />
@@ -327,14 +362,23 @@ export const OutreachBookingModal: React.FC<{ user: User }> = ({ user }) => {
               <input type="checkbox" required checked={privacyConsent} onChange={(event) => setPrivacyConsent(event.target.checked)} className="mt-0.5 h-4 w-4 accent-teal-800" />
               <span>{isFilipino ? 'Pumapayag akong gamitin ng health center staff ang aking contact details para suriin at sagutin ang appointment request na ito.' : 'I agree that health center staff may use my contact details to review and respond to this appointment request.'}</span>
             </label>
+            </>
+            )}
 
             {error && <p role="alert" className="flex items-start gap-2 text-sm text-rose-800"><AlertCircle className="w-4 h-4 mt-0.5 shrink-0" />{error}</p>}
 
             <div className="flex flex-col-reverse sm:flex-row sm:items-center sm:justify-between gap-3 border-t border-slate-200 pt-4">
-              <p className="flex items-center gap-2 text-xs text-slate-500"><Clock className="w-4 h-4" />{isFilipino ? 'Pending ang request hanggang makumpirma ng staff.' : 'Requests remain pending until staff confirm.'}</p>
+              {formStep === 2 ? (
+                <p className="flex items-center gap-2 text-xs text-slate-500"><Clock className="w-4 h-4" />{isFilipino ? 'Pending ang request hanggang makumpirma ng staff.' : 'Requests remain pending until staff confirm.'}</p>
+              ) : <span />}
               <div className="flex justify-end gap-3">
+                {formStep === 2 && <button type="button" onClick={() => { setError(''); setFormStep(1); }} className="min-h-11 px-4 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-100 rounded-md">{isFilipino ? 'Bumalik' : 'Back'}</button>}
                 <button type="button" onClick={handleClose} className="min-h-11 px-4 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-100 rounded-md">{isFilipino ? 'Kanselahin' : 'Cancel'}</button>
-                <button type="submit" disabled={submitting || !canSubmitAppointment || !selectedService || !privacyConsent} className="inline-flex min-h-11 items-center gap-2 px-5 py-2.5 text-sm font-bold text-white bg-teal-900 hover:bg-teal-950 disabled:cursor-not-allowed disabled:opacity-60 rounded-md"><CalendarDays className="w-4 h-4" />{submitting ? (isFilipino ? 'Ipinapadala...' : 'Sending...') : (isFilipino ? 'Ipadala ang request' : 'Send appointment request')}</button>
+                {formStep === 1 ? (
+                  <button type="submit" disabled={!canSubmitAppointment || !selectedService} className="inline-flex min-h-11 items-center gap-2 px-5 py-2.5 text-sm font-bold text-white bg-teal-900 hover:bg-teal-950 disabled:cursor-not-allowed disabled:opacity-60 rounded-md">{isFilipino ? 'Magpatuloy sa iskedyul' : 'Continue to schedule'}</button>
+                ) : (
+                  <button type="submit" disabled={submitting || !canSubmitAppointment || !selectedService || !privacyConsent} className="inline-flex min-h-11 items-center gap-2 px-5 py-2.5 text-sm font-bold text-white bg-teal-900 hover:bg-teal-950 disabled:cursor-not-allowed disabled:opacity-60 rounded-md"><CalendarDays className="w-4 h-4" />{submitting ? (isFilipino ? 'Ipinapadala...' : 'Sending...') : (isFilipino ? 'Ipadala ang request' : 'Send appointment request')}</button>
+                )}
               </div>
             </div>
           </form>

@@ -17,7 +17,7 @@ import { AdminPanel } from './components/AdminPanel';
 import { UserAppointmentChat } from './components/UserAppointmentChat';
 
 const AppContent: React.FC<{ user: User }> = ({ user }) => {
-  const { activeSection, notificationToast, setNotificationToast } = useHealthCenter();
+  const { activeSection, notificationToast, setNotificationToast, appointmentRequestAvailability, language } = useHealthCenter();
 
   useEffect(() => {
     const handleStatusChange = (event: Event) => {
@@ -37,6 +37,14 @@ const AppContent: React.FC<{ user: User }> = ({ user }) => {
   return (
     <div className="public-page-shell min-h-screen flex flex-col text-[#1a2b29] antialiased selection:bg-[#dce8df] selection:text-[#123b39]">
       <Header />
+
+      {appointmentRequestAvailability === 'pending' && (
+        <div role="status" aria-live="polite" className="border-b border-amber-200 bg-amber-50 px-4 py-3 text-center text-sm font-semibold text-amber-950">
+          {language === 'fil'
+            ? 'May appointment request ka pang naghihintay ng pagsusuri ng kawani.'
+            : 'You have an appointment request waiting for clinic staff to review.'}
+        </div>
+      )}
 
       <main key={activeSection} className="public-view-enter flex-1">
         {activeSection === 'clinic-information' ? (

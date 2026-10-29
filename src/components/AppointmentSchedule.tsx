@@ -59,7 +59,11 @@ export const AppointmentSchedule: React.FC = () => {
     (grouped[slot.date] ??= []).push(slot);
     return grouped;
   }, {});
-  const dates = Object.keys(appointmentsByDate).filter((date) => date >= today).sort();
+  const scheduleSlots = Object.values(appointmentsByDate)
+    .flat()
+    .filter((slot) => slot.date >= today)
+    .sort((first, second) => first.date.localeCompare(second.date)
+      || (timeOrder[first.time] ?? 99) - (timeOrder[second.time] ?? 99));
 
   return (
     <section id="appointment-schedule" className="site-section-bg section-enter border-b border-[#dfe6e1] py-12 sm:py-16">
@@ -80,34 +84,24 @@ export const AppointmentSchedule: React.FC = () => {
         {error && <p role="alert" className="border-y border-[#dfe6e1] py-5 text-sm text-rose-800">{error}</p>}
 
         {!loading && !error && (
-          dates.length === 0 ? (
+          scheduleSlots.length === 0 ? (
             <p className="border-y border-[#dfe6e1] py-5 text-sm text-[#66736f]">
               {isFilipino ? 'Wala pang kumpirmadong appointment.' : 'There are no accepted appointments yet.'}
             </p>
           ) : (
-            <div className="overflow-hidden border border-[#dfe6e1]">
-              <div className="hidden grid-cols-[minmax(220px,0.8fr)_minmax(0,1.5fr)] bg-[#f2f6f2] px-5 py-3 text-[11px] font-bold uppercase tracking-wide text-[#66736f] sm:grid">
-                <span>{isFilipino ? 'Petsa' : 'Date'}</span>
-                <span>{isFilipino ? 'Mga oras' : 'Time slots'}</span>
-              </div>
-              {dates.map((date) => (
-                <article key={date} className="grid min-w-0 gap-3 border-t border-[#dfe6e1] px-3 py-4 sm:grid-cols-[minmax(220px,0.8fr)_minmax(0,1.5fr)] sm:items-center sm:px-5">
-                  <div>
-                    <div className="text-[11px] font-bold text-[#17645c]">{date}</div>
-                    <h3 className="mt-1 text-sm font-bold text-[#17312e]">{dateLabel(date)}</h3>
-                  </div>
-                  <div className="flex min-w-0 flex-wrap gap-2">
-                    {appointmentsByDate[date]
-                      .sort((first, second) => (timeOrder[first.time] ?? 99) - (timeOrder[second.time] ?? 99))
-                      .map((slot) => (
-                        <div key={slot.time} className="flex min-h-11 min-w-0 max-w-full items-center gap-2 border border-[#cfd8d2] bg-white px-2.5 py-2 sm:px-3">
-                          <Clock3 className="h-4 w-4 shrink-0 text-[#17645c]" />
-                          <span className="text-sm font-bold text-[#17312e]">{timeLabels[slot.time] ?? slot.time}</span>
-                          <span className="border-l border-[#dfe6e1] pl-2 text-xs text-[#66736f]">
-                            {slot.bookedCount} {isFilipino ? 'kumpirmado' : `accepted ${slot.bookedCount === 1 ? 'appointment' : 'appointments'}`}
-                          </span>
-                        </div>
-                      ))}
+            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+              {scheduleSlots.map((slot) => (
+                <article key={`${slot.date}:${slot.time}`} className="border border-[#dfe6e1] bg-white p-4">
+                  <div className="text-[11px] font-bold text-[#17645c]">{slot.date}</div>
+                  <h3 className="mt-1 text-sm font-bold text-[#17312e]">{dateLabel(slot.date)}</h3>
+                  <div className="mt-4 flex items-center justify-between gap-3 border-t border-[#edf1ee] pt-3">
+                    <span className="flex items-center gap-2 text-sm font-bold text-[#17312e]">
+                      <Clock3 className="h-4 w-4 shrink-0 text-[#17645c]" />
+                      {timeLabels[slot.time] ?? slot.time}
+                    </span>
+                    <span className="text-xs text-[#66736f]">
+                      {slot.bookedCount} {isFilipino ? 'kumpirmado' : `accepted ${slot.bookedCount === 1 ? 'appointment' : 'appointments'}`}
+                    </span>
                   </div>
                 </article>
               ))}

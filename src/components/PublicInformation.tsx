@@ -7,7 +7,7 @@ export const PublicInformation: React.FC = () => {
   const isFilipino = language === 'fil';
   const featuredServices = siteContent.services.filter((service) =>
     ['checkup', 'dental', 'xray', 'maternity', 'pharmacy'].includes(service.category),
-  ).slice(0, 4);
+  ).slice(0, 5);
   const updates = siteContent.news.slice(0, 3);
   const outreach = siteContent.outreach.slice(0, 3);
   const settings = siteContent.settings;
@@ -36,8 +36,9 @@ export const PublicInformation: React.FC = () => {
           <p className="text-xs text-[#66736f]">Published schedule · Confirm availability at the clinic</p>
         </div>
 
-        <div className="reveal-stagger grid border-y border-[#dfe6e1] lg:grid-cols-[0.75fr_1.25fr]">
-          <div className="border-b border-[#dfe6e1] py-6 lg:border-b-0 lg:border-r lg:pr-8">
+        <div className="reveal-stagger grid gap-4 lg:grid-cols-[0.75fr_1.25fr]">
+          <article className="border border-[#dfe6e1] bg-white/80 p-5 sm:p-6">
+            <h3 className="text-sm font-bold uppercase tracking-wide text-[#17312e]">{isFilipino ? 'Oras at iskedyul ng klinika' : 'Clinic hours and schedules'}</h3>
             <div className="mt-5 grid gap-4 text-sm text-[#66736f]">
               <div className="flex items-start gap-2"><Clock3 className="mt-0.5 h-4 w-4 text-[#17645c]" /><span>{isFilipino ? 'Oras ng klinika' : 'Clinic hours'}<br /><strong className="text-[#17312e]">{isFilipino ? settings.clinicHoursFil : settings.clinicHours}</strong></span></div>
               <div className="ml-6 text-xs leading-relaxed text-[#66736f]">
@@ -49,10 +50,11 @@ export const PublicInformation: React.FC = () => {
             <div className="mt-6 border-l-2 border-amber-500 bg-amber-50 px-4 py-3 text-xs leading-relaxed text-amber-950">
               <strong>{isFilipino ? 'Pabatid sa holiday:' : 'Holiday advisory:'}</strong> {isFilipino ? settings.holidayAdvisoryFil : settings.holidayAdvisory}
             </div>
-          </div>
+          </article>
 
-          <div className="py-6 lg:pl-8">
-            <div className="grid md:grid-cols-2">
+          <article className="border border-[#dfe6e1] bg-white/80 p-5 sm:p-6">
+            <h3 className="mb-3 text-sm font-bold uppercase tracking-wide text-[#17312e]">{isFilipino ? 'Mga serbisyo' : 'Available services'}</h3>
+            <div className="grid gap-x-5 md:grid-cols-2">
               {featuredServices.map((service) => (
                 <article key={service.id} className="reveal-card border-b border-[#dfe6e1] py-4 md:px-5 md:[&:nth-child(odd)]:pl-0 md:[&:nth-child(even)]:border-l md:[&:nth-child(even)]:pr-0">
                   <div className="flex items-start justify-between gap-3">
@@ -67,11 +69,11 @@ export const PublicInformation: React.FC = () => {
                 </article>
               ))}
             </div>
-          </div>
+          </article>
         </div>
 
-        <div className="mt-10 grid gap-10 lg:grid-cols-2">
-          <div>
+        <div className="mt-4 grid gap-4 lg:grid-cols-2">
+          <article className="border border-[#dfe6e1] bg-white/80 p-5 sm:p-6">
             <div className="mb-4 flex items-center gap-2"><Bell className="h-4 w-4 text-[#17645c]" /><h3 className="text-lg font-bold uppercase text-[#17312e]">Health announcements</h3></div>
             <div className="reveal-stagger border-t border-[#dfe6e1]">
               {updates.map((update) => (
@@ -94,9 +96,9 @@ export const PublicInformation: React.FC = () => {
                 </article>
               ))}
             </div>
-          </div>
+          </article>
 
-          <div>
+          <article className="border border-[#dfe6e1] bg-white/80 p-5 sm:p-6">
             <div className="mb-4 flex items-center gap-2"><CalendarDays className="h-4 w-4 text-[#17645c]" /><h3 className="text-lg font-bold uppercase text-[#17312e]">Upcoming outreach</h3></div>
             <div className="reveal-stagger border-t border-[#dfe6e1]">
               {outreach.map((program) => (
@@ -109,7 +111,7 @@ export const PublicInformation: React.FC = () => {
                 </article>
               ))}
             </div>
-          </div>
+          </article>
         </div>
       </div>
       {viewingImage && (
