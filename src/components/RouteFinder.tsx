@@ -39,7 +39,7 @@ type RouteInfo = {
 
 type RouteFeatureCollection = GeoJSON.FeatureCollection<GeoJSON.LineString>;
 
-const destination: L.LatLngTuple = [14.5472886, 121.0659399];
+const destination: L.LatLngTuple = [14.54293, 121.05668];
 const destinationName = 'Quintin De Borja Health Center';
 const wazeUrl = `https://www.waze.com/ul?ll=${destination[0]}%2C${destination[1]}&navigate=yes`;
 const routingProfiles: Record<TravelMode, string> = {
@@ -156,6 +156,7 @@ export const RouteFinder: React.FC = () => {
   const [mapReady, setMapReady] = useState(false);
   const [renderer, setRenderer] = useState<Renderer>('maplibre');
   const [route, setRoute] = useState<RouteInfo | null>(null);
+  const [routing, setRouting] = useState(false);
   const [collapsed, setCollapsed] = useState(() => window.matchMedia('(max-width: 639px)').matches);
   const [trackingAttempt, setTrackingAttempt] = useState(0);
   const [pinStartMode, setPinStartMode] = useState(false);
@@ -419,12 +420,16 @@ export const RouteFinder: React.FC = () => {
   }, [origin, renderer, mapReady]);
 
   useEffect(() => {
-    if (!origin || !mapReady) return;
+    if (!origin || !mapReady) {
+      setRouting(false);
+      return;
+    }
     if (origin.source !== 'manual' && origin.accuracy > 250) {
       activeRouteRequestRef.current?.controller.abort();
       activeRouteRequestRef.current = null;
       lastRouteRef.current = null;
       setRoute(null);
+      setRouting(false);
       setRouteError('');
       clearRenderedRoute();
       return;
@@ -442,9 +447,13 @@ export const RouteFinder: React.FC = () => {
     const controller = new AbortController();
     if (activeRequest) activeRequest.controller.abort();
     activeRouteRequestRef.current = { position: origin, mode: travelMode, controller };
+    setRoute(null);
+    setRouting(true);
+    setRouteError('');
+    clearRenderedRoute();
+    shouldFitRouteRef.current = true;
     const timeout = window.setTimeout(async () => {
       const requestDeadline = window.setTimeout(() => controller.abort('route-timeout'), 15000);
-      setRouteError('');
       const profile = routingProfiles[travelMode];
       const coordinates = `${origin.longitude},${origin.latitude};${destination[1]},${destination[0]}`;
       const url = `https://routing.openstreetmap.de/${profile}/route/v1/driving/${coordinates}?overview=full&geometries=geojson&steps=true&alternatives=false&continue_straight=false`;
@@ -562,7 +571,10 @@ export const RouteFinder: React.FC = () => {
         setRouteError(error instanceof Error ? error.message : 'Could not calculate this route.');
       } finally {
         window.clearTimeout(requestDeadline);
-        if (activeRouteRequestRef.current?.controller === controller) activeRouteRequestRef.current = null;
+        if (activeRouteRequestRef.current?.controller === controller) {
+          activeRouteRequestRef.current = null;
+          setRouting(false);
+        }
       }
     }, 350);
 
@@ -684,6 +696,7 @@ export const RouteFinder: React.FC = () => {
           {origin?.source !== 'manual' && origin && origin.accuracy > 250 && <p role="status" className="mb-2 border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-900">Your device reports about {formatDistance(origin.accuracy)} of location uncertainty. Directions are paused to avoid showing a misleading route; pin your start point or wait for a more accurate GPS fix.</p>}
           {route && <div className="flex items-center gap-2 text-sm font-bold text-slate-900"><MapPin className="w-4 h-4 text-teal-800" /><span>{modeLabels[travelMode]} · {formatDistance(route.distance)} · about {formatDuration(route.duration)}</span></div>}
           {(travelMode === 'driving' || travelMode === 'motorcycle') && <div className="mt-2 flex flex-wrap gap-x-4 gap-y-2"><a href={googleMapsUrl} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1.5 text-xs font-bold text-teal-900 underline underline-offset-2">Open navigation <ExternalLink className="w-3.5 h-3.5" /></a><a href={wazeUrl} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1.5 text-xs font-bold text-teal-900 underline underline-offset-2">Open in Waze <ExternalLink className="w-3.5 h-3.5" /></a></div>}
+          {routing && <p role="status" className="text-xs text-slate-600">Calculating a street route from your current location…</p>}
           {route?.maneuvers[0] && <p className="mt-2 border-l-2 border-teal-700 pl-3 text-xs font-semibold text-slate-700">{route.maneuvers[0].instruction}</p>}
           {route && route.distance > route.straightLineDistance * 1.5 && <p className="mt-1 text-[11px] text-slate-600">Straight-line distance is {formatDistance(route.straightLineDistance)}; this route follows connected mapped streets.</p>}
           {route && (route.startAccessDistance > 20 || route.endAccessDistance > 20) && <p className="mt-1 text-[11px] text-slate-600">Dotted links show the straight-line gap to nearest mapped roads ({formatDistance(route.startAccessDistance)} from start, {formatDistance(route.endAccessDistance)} at clinic).</p>}

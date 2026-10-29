@@ -95,11 +95,11 @@ export const ServicesSection: React.FC = () => {
         <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-slate-950/60 p-2 pt-[max(0.5rem,env(safe-area-inset-top))] pb-[max(0.5rem,env(safe-area-inset-bottom))] sm:items-center sm:p-4" onClick={() => setSelectedServiceId(null)}>
           <section role="dialog" aria-modal="true" aria-labelledby="service-dialog-title" onClick={(event) => event.stopPropagation()} className="max-h-[calc(100dvh-1rem-env(safe-area-inset-top)-env(safe-area-inset-bottom))] w-full max-w-xl overflow-y-auto border border-[#dfe6e1] bg-[#fcfdfb] p-4 shadow-[0_18px_50px_rgba(23,58,55,0.28)] sm:max-h-[90vh] sm:p-8">
             <div className="flex items-start justify-between gap-4 border-b border-slate-200 pb-4">
-              <div>
+              <div className="min-w-0">
                 <div className="text-xs font-bold uppercase tracking-wider text-teal-800">{language === 'fil' ? selectedService.badgeFil : selectedService.badge}</div>
-                <h3 id="service-dialog-title" className="mt-1 text-2xl font-bold tracking-wide text-slate-950 uppercase">{language === 'fil' ? selectedService.titleFil : selectedService.title}</h3>
+                <h3 id="service-dialog-title" className="mt-1 break-words text-2xl font-bold tracking-wide text-slate-950 uppercase">{language === 'fil' ? selectedService.titleFil : selectedService.title}</h3>
               </div>
-              <button onClick={() => setSelectedServiceId(null)} aria-label={t.btnCloseArticle} className="p-2 text-slate-500 hover:text-slate-900"><X className="w-5 h-5" /></button>
+              <button onClick={() => setSelectedServiceId(null)} aria-label={t.btnCloseArticle} className="flex h-11 w-11 shrink-0 items-center justify-center text-slate-500 hover:text-slate-900"><X className="w-5 h-5" /></button>
             </div>
             <p className="py-5 text-sm leading-relaxed text-slate-700">{language === 'fil' ? selectedService.fullDescFil : selectedService.fullDesc}</p>
             <div className="grid sm:grid-cols-2 gap-4 border-y border-slate-200 py-4 text-sm">

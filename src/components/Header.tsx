@@ -90,20 +90,22 @@ export const Header: React.FC = () => {
           <div className="flex items-center gap-1 xl:hidden sm:gap-2">
             <button
               onClick={toggleLanguage}
-              className="flex h-11 w-11 items-center justify-center text-[#4b5563] hover:text-[#0f4d3c] xl:hidden"
+              className="flex h-11 w-11 shrink-0 items-center justify-center text-[#4b5563] hover:text-[#0f4d3c] xl:hidden"
               aria-label={language === 'en' ? 'Switch to Filipino' : 'Switch to English'}
               title={language === 'en' ? 'Filipino' : 'English'}
             >
               <Globe className="w-5 h-5" />
             </button>
-            <button type="button" onClick={() => setMessagesOpen(true)} className="relative flex h-11 w-11 items-center justify-center text-[#4b5563] hover:text-[#0f4d3c] xl:hidden" aria-label={`Messages${unreadAdminMessageCount > 0 ? `, ${unreadAdminMessageCount} unread` : ''}`} title={unreadMessagesError || (unreadAdminMessageCount > 0 ? `${unreadAdminMessageCount} unread message${unreadAdminMessageCount === 1 ? '' : 's'}` : 'Messages')}>
+            <button type="button" onClick={() => setMessagesOpen(true)} className="relative flex h-11 w-11 shrink-0 items-center justify-center text-[#4b5563] hover:text-[#0f4d3c] xl:hidden" aria-label={`Messages${unreadAdminMessageCount > 0 ? `, ${unreadAdminMessageCount} unread` : ''}`} title={unreadMessagesError || (unreadAdminMessageCount > 0 ? `${unreadAdminMessageCount} unread message${unreadAdminMessageCount === 1 ? '' : 's'}` : 'Messages')}>
               <Mail className="h-5 w-5" />
               {unreadAdminMessageCount > 0 && <span aria-hidden="true" className="absolute right-0 top-0 flex h-5 min-w-5 items-center justify-center rounded-full bg-rose-600 px-1 text-[10px] font-bold leading-none text-white">{unreadAdminMessageCount > 99 ? '99+' : unreadAdminMessageCount}</span>}
             </button>
             <button
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              className="flex h-11 w-11 items-center justify-center rounded-lg text-[#374151] hover:bg-[#eaf3ee] hover:text-[#0f4d3c]"
+              className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg text-[#374151] hover:bg-[#eaf3ee] hover:text-[#0f4d3c]"
               aria-label="Toggle navigation menu"
+              aria-expanded={mobileMenuOpen}
+              aria-controls="mobile-navigation"
             >
               {mobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
             </button>
@@ -112,7 +114,7 @@ export const Header: React.FC = () => {
       </div>
 
       {mobileMenuOpen && (
-        <div className="xl:hidden border-t border-[#dce7e1] bg-white px-4 pt-3 pb-5 shadow-lg space-y-3">
+        <div id="mobile-navigation" className="xl:hidden border-t border-[#dce7e1] bg-white px-4 pt-3 pb-5 shadow-lg space-y-3">
           <div className="grid grid-cols-2 gap-2 text-sm">
             {navLinks.map((item) => (
               <button
