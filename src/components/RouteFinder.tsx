@@ -39,7 +39,7 @@ type RouteInfo = {
 
 type RouteFeatureCollection = GeoJSON.FeatureCollection<GeoJSON.LineString>;
 
-const destination: L.LatLngTuple = [14.54293, 121.05668];
+const destination: L.LatLngTuple = [14.5429309, 121.0656783];
 const destinationName = 'Quintin De Borja Health Center';
 const wazeUrl = `https://www.waze.com/ul?ll=${destination[0]}%2C${destination[1]}&navigate=yes`;
 const routingProfiles: Record<TravelMode, string> = {
