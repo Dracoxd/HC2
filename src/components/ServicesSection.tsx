@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useHealthCenter } from '../context/HealthCenterContext';
 import { ServiceDetail } from '../types';
-import { Activity, Baby, Clock, Heart, MapPin, Pill, ShieldAlert, Smile, Stethoscope, X } from 'lucide-react';
+import { Activity, ArrowRight, Baby, Clock, Heart, MapPin, Pill, ShieldAlert, Smile, Stethoscope, X } from 'lucide-react';
 import animalBiteImage from '../assets/images/ANIMAL BITE.jpg';
 import bnsImage from '../assets/images/BNS.png';
 import checkupImage from '../assets/images/CHECK UP.jpg';
@@ -48,59 +48,53 @@ export const ServicesSection: React.FC = () => {
 
   const [selectedServiceId, setSelectedServiceId] = useState<string | null>(null);
   const selectedService = siteContent.services.find((service) => service.id === selectedServiceId) ?? null;
+  const servicePreview = (description: string) => {
+    const firstSentence = description.trim().match(/^.*?[.!?](?=\s|$)/)?.[0] ?? description.trim();
+    return firstSentence.length > 150 ? `${firstSentence.slice(0, 147).trimEnd()}...` : firstSentence;
+  };
 
   return (
-    <section id="services" className="site-section-bg section-enter services-enter py-14 sm:py-18 border-b border-[#dfe6e1]">
+    <section id="services" className="site-section-bg section-enter services-enter border-b border-[#dce7e1] py-8 sm:py-10">
       <div className="max-w-7xl mx-auto px-5 sm:px-8 lg:px-12">
-        <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-5 mb-8">
+        <div className="breadcrumb">Home <span aria-hidden="true">/</span> <span className="font-semibold text-[#0f4d3c]">Services</span></div>
+        <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-5 mb-6">
           <div className="max-w-2xl">
-            <div className="text-xs font-bold text-teal-800 uppercase mb-3">{t.navServices}</div>
-            <h2 className="text-3xl sm:text-4xl font-bold uppercase text-slate-950">{t.servicesTitle}</h2>
-            <p className="mt-3 text-base text-slate-600">{t.servicesSubtitle}</p>
+            <div className="text-xs font-bold text-[#2c7a5f] uppercase mb-2">{language === 'fil' ? 'Mga serbisyong pangkalusugan' : 'Health services'}</div>
+            <p className="mt-2 text-sm text-[#6b7280]">{language === 'fil' ? 'Mga iskedyul, lokasyon, at impormasyon sa pangangalaga.' : 'Schedules, locations, and care information.'}</p>
           </div>
         </div>
 
-        <div className="border-t border-[#cfd8d2]">
-          {siteContent.services.map((service, index) => (
-            <article key={service.id} className="service-row grid min-w-0 gap-4 border-b border-[#dfe6e1] py-5 transition-colors duration-200 hover:bg-[#f2f6f2] md:grid-cols-[minmax(0,1.2fr)_minmax(260px,0.8fr)_auto] md:items-center md:gap-8">
-              <div className="flex min-w-0 items-center gap-3 sm:gap-4">
+        <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
+          {siteContent.services.map((service) => (
+            <article key={service.id} className="site-card service-row lift-on-hover flex min-w-0 flex-col overflow-hidden transition-colors duration-200 hover:border-[#9bbdad]">
                 {(() => {
                   const image = serviceImages[service.category];
                   const illustration = illustrationForService(service.category);
                   const IllustrationIcon = illustration.Icon;
                   return (
                     image
-                      ? <img src={image} alt={language === 'fil' ? service.titleFil : service.title} className="h-[76px] w-[100px] shrink-0 border border-white object-cover sm:h-[88px] sm:w-[120px]" />
+                      ? <img src={image} alt={language === 'fil' ? service.titleFil : service.title} loading="lazy" decoding="async" className="aspect-[16/9] w-full border-b border-[#dce7e1] object-cover" />
                       : (
-                        <div role="img" aria-label={`${language === 'fil' ? service.titleFil : service.title} illustration`} className={`relative flex h-[76px] w-[100px] shrink-0 items-center justify-center overflow-hidden border border-white sm:h-[88px] sm:w-[120px] ${illustration.color}`}>
-                          <span className={`absolute -right-3 -top-5 h-16 w-16 rounded-full ${illustration.accent}`} />
-                          <span className={`absolute -bottom-8 -left-3 h-16 w-16 rounded-full ${illustration.accent}`} />
+                        <div role="img" aria-label={`${language === 'fil' ? service.titleFil : service.title} illustration`} className={`relative flex aspect-[16/9] w-full items-center justify-center overflow-hidden border-b border-[#dce7e1] ${illustration.color}`}>
+                          <span className={`absolute right-8 top-5 h-14 w-14 rounded-full ${illustration.accent}`} />
+                          <span className={`absolute bottom-4 left-8 h-10 w-10 rounded-full ${illustration.accent}`} />
                           <IllustrationIcon className="relative h-9 w-9 stroke-[1.6] sm:h-10 sm:w-10" aria-hidden="true" />
                         </div>
                       )
                   );
                 })()}
-                <div className="min-w-0">
-                  <div className="text-[10px] font-bold text-[#7b8984] tabular-nums mb-1">{String(index + 1).padStart(2, '0')}</div>
-                  <h3 className="text-[15px] font-bold tracking-wide text-[#17312e] uppercase">{language === 'fil' ? service.titleFil : service.title}</h3>
-                  <p className="mt-1 text-sm leading-relaxed text-[#66736f]">
-                    {(() => {
-                      const description = (language === 'fil' ? service.shortDescFil : service.shortDesc).trim();
-                      const firstSentence = description.match(/^[\s\S]*?[.!?](?=\s|$)/)?.[0] ?? description;
-                      return firstSentence.length > 150 ? `${firstSentence.slice(0, 147)}...` : firstSentence;
-                    })()}
-                  </p>
-                </div>
+              <div className="flex flex-1 flex-col p-5">
+                <h3 className="text-base font-bold text-[#0f4d3c]">{language === 'fil' ? service.titleFil : service.title}</h3>
+                <p className="mt-2 min-h-10 text-sm leading-relaxed text-[#6b7280]">{servicePreview(language === 'fil' ? service.shortDescFil : service.shortDesc)}</p>
+                <div className="mt-4 flex flex-1 items-start gap-2 text-xs leading-relaxed text-[#4b5563]"><Clock className="mt-0.5 h-4 w-4 shrink-0 text-[#2c7a5f]" /><span>{language === 'fil' ? service.scheduleFil : service.schedule}</span></div>
+                <div className="mt-2 flex items-start gap-2 text-xs leading-relaxed text-[#6b7280]"><MapPin className="mt-0.5 h-4 w-4 shrink-0 text-[#2c7a5f]" /><span>{service.location}</span></div>
+                <button onClick={() => setSelectedServiceId(service.id)} className="mt-5 inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-sm bg-[#0f4d3c] px-4 py-2.5 text-sm font-bold text-white hover:bg-[#2c7a5f]">
+                  {language === 'fil' ? 'Tingnan ang detalye' : 'View details'}<ArrowRight className="h-4 w-4" />
+                </button>
               </div>
-              <div className="space-y-2 text-sm text-[#66736f] md:border-l md:border-[#dfe6e1] md:pl-5">
-                <div className="flex items-start gap-2"><Clock className="w-4 h-4 mt-0.5 text-[#17645c] shrink-0" /><span>{language === 'fil' ? service.scheduleFil : service.schedule}</span></div>
-                <div className="flex items-start gap-2"><MapPin className="w-4 h-4 mt-0.5 text-[#17645c] shrink-0" /><span>{service.location}</span></div>
-              </div>
-              <button onClick={() => setSelectedServiceId(service.id)} className="justify-self-start md:justify-self-end px-3 py-2 text-sm font-bold text-[#173a37] border-b border-[#17645c] hover:bg-[#eaf0ec]">
-                {t.btnViewRequirements}
-              </button>
             </article>
           ))}
+          {siteContent.services.length === 0 && <p className="col-span-full py-8 text-sm text-[#6b7280]">{language === 'fil' ? 'Walang serbisyong nailathala sa ngayon.' : 'No services have been published yet.'}</p>}
         </div>
 
       </div>

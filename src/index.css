@@ -42,6 +42,39 @@
     box-shadow: 0 4px 16px rgba(15, 77, 60, 0.045);
   }
 
+  .breadcrumb {
+    display: flex;
+    gap: 0.35rem;
+    margin-bottom: 0.75rem;
+    color: var(--color-light-text);
+    font-size: 0.75rem;
+  }
+
+  .holiday-advisory {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin: 1.125rem 0 1.5rem;
+    border-left: 4px solid #fbbf24;
+    border-radius: 0.25rem;
+    background: #fffbeb;
+    padding: 0.875rem 1rem;
+    color: #92400e;
+    font-size: 0.8rem;
+    font-weight: 600;
+  }
+
+  .bullet-list {
+    margin: 0.5rem 0;
+    padding-left: 1.2rem;
+    list-style: disc;
+  }
+
+  .bullet-list li {
+    margin-bottom: 0.3rem;
+    line-height: 1.5;
+  }
+
   button, a {
     -webkit-tap-highlight-color: transparent;
   }

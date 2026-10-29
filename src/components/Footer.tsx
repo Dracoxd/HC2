@@ -1,36 +1,10 @@
 import React from 'react';
-import { useHealthCenter } from '../context/HealthCenterContext';
-
-import centerPhoto from '../assets/images/QUINTIN.png';
 
 export const Footer: React.FC = () => {
-  const { setActiveSection } = useHealthCenter();
-
-  const handleNavClick = (id: string) => {
-    setActiveSection(id);
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-  };
-
   return (
     <footer className="footer-enter w-full shrink-0 border-t border-[#173a37] bg-[#173a37] text-white">
-      <div className="mx-auto max-w-5xl px-5 py-6 sm:px-8">
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-5">
-          <div className="flex items-center gap-4">
-            <img src={centerPhoto} alt="" className="h-12 w-12 rounded-full border border-white/15 object-cover" />
-            <div>
-              <div className="text-sm font-bold">Quintin De Borja Health Center</div>
-            </div>
-          </div>
-          <nav aria-label="Footer navigation" className="flex flex-wrap gap-x-5 gap-y-3 text-xs text-white/80">
-            <button onClick={() => handleNavClick('overview')} className="hover:text-white">HOME</button>
-            <button onClick={() => handleNavClick('clinic-information')} className="hover:text-white">INFORMATION</button>
-            <button onClick={() => handleNavClick('appointment-schedule')} className="hover:text-white">SCHEDULE</button>
-            <button onClick={() => handleNavClick('services')} className="hover:text-white">SERVICES</button>
-          </nav>
-        </div>
-        <div className="mt-5 border-t border-white/15 pt-3 text-left text-xs text-white/60">
-          <span>© {new Date().getFullYear()} Quintin De Borja Health Center</span>
-        </div>
+      <div className="px-5 py-2 text-center text-xs leading-4 text-white/75">
+        © {new Date().getFullYear()} Quintin De Borja Health Center
       </div>
     </footer>
   );
