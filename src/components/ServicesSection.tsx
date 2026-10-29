@@ -38,14 +38,6 @@ const illustrationForService = (category: string) => {
 export const ServicesSection: React.FC = () => {
   const { t, language, openBookingForProgram, clinicOpen, appointmentRequestAvailability, siteContent } = useHealthCenter();
   const bookingEnabled = clinicOpen === true && appointmentRequestAvailability === 'available';
-  const bookingLabel = appointmentRequestAvailability === 'pending'
-    ? t.serviceAppointmentUnderReview
-    : appointmentRequestAvailability === 'checking'
-      ? t.serviceCheckingRequestStatus
-      : appointmentRequestAvailability === 'error'
-        ? t.serviceUnableToCheckRequest
-        : clinicOpen === true ? t.serviceRequestAppointment : clinicOpen === false ? t.serviceClosed : t.serviceCheckingAvailability;
-
   const [selectedServiceId, setSelectedServiceId] = useState<string | null>(null);
   const selectedService = siteContent.services.find((service) => service.id === selectedServiceId) ?? null;
   const servicePreview = (description: string) => {
@@ -114,9 +106,8 @@ export const ServicesSection: React.FC = () => {
               <div><div className="font-bold text-slate-900">{t.labelSchedule}</div><p className="mt-1 text-slate-600">{language === 'fil' ? selectedService.scheduleFil : selectedService.schedule}</p></div>
               <div><div className="font-bold text-slate-900">{t.labelLocation}</div><p className="mt-1 text-slate-600">{selectedService.location}</p></div>
               <div className="sm:col-span-2"><div className="font-bold text-slate-900">{t.labelPersonnel}</div><p className="mt-1 text-slate-600">{selectedService.keyPersonnel.join(', ')}</p></div>
-              <div className="sm:col-span-2"><div className="font-bold text-slate-900">{t.labelRequirements}</div><ul className="mt-1 list-disc space-y-1 pl-5 text-slate-600">{(language === 'fil' ? selectedService.requirementsFil : selectedService.requirements).map((requirement) => <li key={requirement}>{requirement}</li>)}</ul></div>
             </div>
-            <button disabled={!bookingEnabled} onClick={() => openBookingForProgram(selectedService.id)} className="mt-6 inline-flex min-h-11 items-center justify-center px-4 py-3 bg-[#17645c] text-white text-sm font-bold rounded-sm hover:bg-[#104f49] disabled:cursor-not-allowed disabled:opacity-50">{bookingLabel}</button>
+            {bookingEnabled && <button onClick={() => openBookingForProgram(selectedService.id)} className="mt-6 inline-flex min-h-11 items-center justify-center px-4 py-3 bg-[#17645c] text-white text-sm font-bold rounded-sm hover:bg-[#104f49]">{language === 'fil' ? 'Humiling ng appointment' : 'REQUEST AN APPOINTMENT'}</button>}
           </section>
         </div>,
         document.body,
