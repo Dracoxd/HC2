@@ -15,8 +15,8 @@ createRoot(document.getElementById('root')!).render(
     localization={{
       signIn: {
         start: {
-          title: 'Sign in to Quintin De Borja Pateros',
-          titleCombined: 'Sign in to Quintin De Borja Pateros',
+          title: 'Sign in to Health Center',
+          titleCombined: 'Sign in to Health Center',
         },
       },
     }}
