@@ -40,7 +40,7 @@ const authAppearance = {
     card: {
       width: '100%',
       minWidth: '0',
-      maxWidth: '304px',
+      maxWidth: '100%',
       boxSizing: 'border-box',
       border: '1px solid #e4e4e7',
       borderRadius: '12px',
@@ -103,7 +103,7 @@ export const AuthScreen: React.FC = () => {
             </div>
           </div>
         </div>
-        <div className="flex min-w-0 justify-center px-5 py-5">
+        <div className="flex w-full min-w-0 justify-center px-5 py-5">
           {isRegistering ? (
             <SignUp routing="hash" signInUrl="#" appearance={authAppearance} />
           ) : (
