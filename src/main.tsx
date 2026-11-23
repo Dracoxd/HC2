@@ -10,7 +10,17 @@ if (!publishableKey) {
 }
 
 createRoot(document.getElementById('root')!).render(
-  <ClerkProvider publishableKey={publishableKey}>
+  <ClerkProvider
+    publishableKey={publishableKey}
+    localization={{
+      signIn: {
+        start: {
+          title: 'Sign in to Quintin De Borja Pateros',
+          titleCombined: 'Sign in to Quintin De Borja Pateros',
+        },
+      },
+    }}
+  >
     <App />
   </ClerkProvider>,
 );

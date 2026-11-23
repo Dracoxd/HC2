@@ -22,11 +22,14 @@ const authAppearance = {
     socialButtonsVariant: 'blockButton' as const,
   },
   elements: {
-    rootBox: { width: '100%' },
+    rootBox: {
+      display: 'flex',
+      width: '100%',
+      justifyContent: 'center',
+    },
     card: {
       width: '100%',
       maxWidth: '320px',
-      margin: '0 auto',
       border: '1px solid #dce7e1',
       borderRadius: '12px',
       boxShadow: '0 8px 24px rgba(23, 58, 55, 0.1)',
