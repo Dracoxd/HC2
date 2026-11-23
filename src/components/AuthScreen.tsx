@@ -92,7 +92,7 @@ export const AuthScreen: React.FC = () => {
   const [isRegistering, setIsRegistering] = useState(false);
 
   return (
-    <main className="min-h-dvh bg-white text-[#18181b] sm:flex sm:items-center sm:justify-center sm:px-4 sm:py-12">
+    <main className="flex min-h-dvh items-center justify-center bg-white px-3 py-4 text-[#18181b] sm:px-4 sm:py-12">
       <section className="mx-auto w-full min-w-0 max-w-[300px] border border-[#e4e4e7] bg-white">
         <div className="border-b border-[#e4e4e7] px-5 py-3">
           <div className="flex items-center gap-3">
