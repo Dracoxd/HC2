@@ -4,18 +4,19 @@ import centerPhoto from '../assets/images/QUINTIN.png';
 
 const authAppearance = {
   variables: {
-    colorPrimary: '#0f4d3c',
+    colorPrimary: '#8b00ff',
     colorPrimaryForeground: '#ffffff',
     colorBackground: '#ffffff',
-    colorForeground: '#17312e',
-    colorMutedForeground: '#66736f',
-    colorBorder: '#dce7e1',
+    colorForeground: '#18181b',
+    colorMutedForeground: '#52525b',
+    colorBorder: '#e4e4e7',
     colorInput: '#ffffff',
-    colorInputForeground: '#17312e',
-    colorRing: '#2c7a5f',
+    colorInputForeground: '#18181b',
+    colorRing: '#8b00ff',
     fontFamily: 'Inter, sans-serif',
     borderRadius: '0.5rem',
-    spacing: '1rem',
+    fontSize: '0.75rem',
+    spacing: '0.75rem',
   },
   options: {
     socialButtonsPlacement: 'top' as const,
@@ -23,56 +24,67 @@ const authAppearance = {
   },
   elements: {
     rootBox: {
+      display: 'flex',
       width: '100%',
       minWidth: '0',
       maxWidth: '100%',
+      justifyContent: 'center',
     },
     cardBox: {
+      display: 'flex',
       width: '100%',
       minWidth: '0',
       maxWidth: '100%',
-      boxShadow: 'none',
+      justifyContent: 'center',
     },
     card: {
       width: '100%',
       minWidth: '0',
-      maxWidth: '100%',
+      maxWidth: '256px',
       boxSizing: 'border-box',
-      border: '0',
-      borderRadius: '0',
-      backgroundColor: 'transparent',
-      padding: '0',
-      boxShadow: 'none',
+      border: '1px solid #e4e4e7',
+      borderRadius: '12px',
+      backgroundColor: '#ffffff',
+      padding: '1.25rem',
+      boxShadow: '0 8px 24px rgba(24, 24, 27, 0.12)',
     },
-    headerTitle: { color: '#17312e', textAlign: 'center' },
-    headerSubtitle: { color: '#66736f' },
-    formFieldLabel: { color: '#17312e' },
-    formFieldHintText: { color: '#66736f' },
-    formFieldErrorText: { color: '#b91c1c' },
+    headerTitle: { color: '#18181b', textAlign: 'center' },
+    headerSubtitle: { color: '#52525b', textAlign: 'center' },
+    formFieldLabel: { color: '#27272a' },
+    formFieldHintText: { color: '#52525b' },
+    formFieldErrorText: { color: '#be123c' },
     socialButtonsBlockButton: {
-      borderColor: '#dce7e1',
+      borderColor: '#e4e4e7',
       backgroundColor: '#ffffff',
       borderRadius: '8px',
       boxShadow: 'none',
     },
-    socialButtonsBlockButtonText: { color: '#17312e' },
+    socialButtonsBlockButtonText: { color: '#27272a' },
     formFieldInput: {
-      borderColor: '#dce7e1',
-      color: '#17312e',
+      borderColor: '#d4d4d8',
+      color: '#18181b',
       borderRadius: '8px',
+      padding: '0.375rem 0.625rem',
     },
-    phoneInputInput: { color: '#17312e' },
-    dividerLine: { backgroundColor: '#dce7e1' },
-    dividerText: { color: '#66736f' },
+    phoneInputInput: { color: '#18181b' },
+    dividerLine: { backgroundColor: '#d4d4d8' },
+    dividerText: { color: '#52525b' },
     formButtonPrimary: {
-      backgroundColor: '#0f4d3c',
-      borderRadius: '6px',
+      backgroundColor: '#8b00ff',
+      borderRadius: '8px',
+      padding: '0.375rem 0.75rem',
       boxShadow: 'none',
     },
     footerAction: { display: 'none' },
-    footerActionText: { color: '#66736f' },
-    footerActionLink: { color: '#0f4d3c' },
-    identityPreviewText: { color: '#17312e' },
+    footer: {
+      backgroundColor: '#fafafa',
+      borderTop: '1px solid #e4e4e7',
+      borderBottomLeftRadius: '12px',
+      borderBottomRightRadius: '12px',
+    },
+    footerActionText: { color: '#52525b' },
+    footerActionLink: { color: '#6b21a8' },
+    identityPreviewText: { color: '#18181b' },
   },
 };
 
@@ -80,33 +92,33 @@ export const AuthScreen: React.FC = () => {
   const [isRegistering, setIsRegistering] = useState(false);
 
   return (
-    <main className="min-h-dvh bg-[#f8faf9] px-3 py-4 text-[#17312e] sm:flex sm:items-center sm:justify-center sm:px-4 sm:py-12">
-      <section className="mx-auto w-full min-w-0 max-w-md overflow-hidden rounded-xl border border-[#dce7e1] bg-white shadow-[0_18px_50px_rgba(23,58,55,0.1)]">
-        <div className="border-b border-[#dfe6e1] px-5 py-4 sm:px-6">
+    <main className="min-h-dvh bg-white text-[#18181b] sm:flex sm:items-center sm:justify-center sm:px-4 sm:py-12">
+      <section className="mx-auto w-full min-w-0 max-w-[300px] border border-[#e4e4e7] bg-white">
+        <div className="border-b border-[#e4e4e7] px-5 py-3">
           <div className="flex items-center gap-3">
-            <img src={centerPhoto} alt="Quintin De Borja Health Center" className="h-10 w-10 rounded-full border border-[#dfe6e1] object-cover" />
+            <img src={centerPhoto} alt="Quintin De Borja Health Center" className="h-8 w-8 rounded-full border border-[#e4e4e7] object-cover" />
             <div>
-              <div className="text-sm font-bold text-[#17312e]">Quintin De Borja</div>
-              <div className="mt-0.5 text-xs text-[#66736f]">Health Center · Pateros</div>
+              <div className="text-xs font-bold text-[#18181b]">Quintin De Borja</div>
+              <div className="mt-0.5 text-[10px] text-[#52525b]">Health Center · Pateros</div>
             </div>
           </div>
         </div>
-        <div className="min-w-0 px-3 py-5 sm:px-8 sm:py-7">
+        <div className="flex min-w-0 justify-center px-5 py-5">
           {isRegistering ? (
             <SignUp routing="hash" signInUrl="#" appearance={authAppearance} />
           ) : (
             <SignIn routing="hash" signUpUrl="#" appearance={authAppearance} />
           )}
-          <div className="mt-5 border-t border-[#dce7e1] pt-4 text-center text-sm text-[#66736f]">
-            {isRegistering ? 'Already have an account? ' : "Don't have an account? "}
-            <button
-              type="button"
-              onClick={() => setIsRegistering((registering) => !registering)}
-              className="font-semibold text-[#0f4d3c] hover:text-[#2c7a5f]"
-            >
-              {isRegistering ? 'Sign in' : 'Sign up'}
-            </button>
-          </div>
+        </div>
+        <div className="mx-5 border-t border-[#e4e4e7] py-3 text-center text-xs text-[#52525b]">
+          {isRegistering ? 'Already have an account? ' : "Don't have an account? "}
+          <button
+            type="button"
+            onClick={() => setIsRegistering((registering) => !registering)}
+            className="font-semibold text-purple-700 hover:text-purple-800"
+          >
+            {isRegistering ? 'Sign in' : 'Sign up'}
+          </button>
         </div>
       </section>
     </main>
