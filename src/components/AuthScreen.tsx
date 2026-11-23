@@ -40,7 +40,7 @@ const authAppearance = {
     card: {
       width: '100%',
       minWidth: '0',
-      maxWidth: '256px',
+      maxWidth: '304px',
       boxSizing: 'border-box',
       border: '1px solid #e4e4e7',
       borderRadius: '12px',
@@ -93,7 +93,7 @@ export const AuthScreen: React.FC = () => {
 
   return (
     <main className="flex min-h-dvh items-center justify-center bg-white px-3 py-4 text-[#18181b] sm:px-4 sm:py-12">
-      <section className="mx-auto w-full min-w-0 max-w-[300px] border border-[#e4e4e7] bg-white">
+      <section className="mx-auto w-full min-w-0 max-w-[360px] border border-[#e4e4e7] bg-white">
         <div className="border-b border-[#e4e4e7] px-5 py-3">
           <div className="flex items-center gap-3">
             <img src={centerPhoto} alt="Quintin De Borja Health Center" className="h-8 w-8 rounded-full border border-[#e4e4e7] object-cover" />
