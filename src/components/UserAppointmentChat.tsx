@@ -1,6 +1,6 @@
 import React, { FormEvent, useEffect, useMemo, useState } from 'react';
 import { ChevronLeft, MessageCircle, Send, X } from 'lucide-react';
-import { auth } from '../firebase';
+import { useAuth, useUser } from '@clerk/react';
 import { useHealthCenter } from '../context/HealthCenterContext';
 
 interface UserAppointment {
@@ -24,6 +24,8 @@ interface UserMessage {
 }
 
 export const UserAppointmentChat: React.FC = () => {
+  const { getToken } = useAuth();
+  const { user } = useUser();
   const { messagesOpen, setMessagesOpen, markAppointmentMessagesRead } = useHealthCenter();
   const [appointments, setAppointments] = useState<UserAppointment[]>([]);
   const [messages, setMessages] = useState<UserMessage[]>([]);
@@ -34,9 +36,9 @@ export const UserAppointmentChat: React.FC = () => {
 
   const loadChat = async () => {
     try {
-      const user = auth.currentUser;
       if (!user) return;
-      const token = await user.getIdToken();
+      const token = await getToken();
+      if (!token) return;
       const response = await fetch('/api/admin', { headers: { Authorization: `Bearer ${token}` } });
       if (!response.ok) throw new Error('Appointment chat could not be loaded.');
       const data = await response.json() as { appointments: UserAppointment[]; messages: UserMessage[] };
@@ -84,13 +86,13 @@ export const UserAppointmentChat: React.FC = () => {
     event.preventDefault();
     if (!selected || !draft.trim()) return;
     try {
-      const user = auth.currentUser;
       if (!user) return;
-      const token = await user.getIdToken();
+      const token = await getToken();
+      if (!token) return;
       const response = await fetch('/api/admin', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ action: 'message', appointmentId: selected.id, message: draft.trim(), senderName: user.displayName || 'Patient' }),
+        body: JSON.stringify({ action: 'message', appointmentId: selected.id, message: draft.trim(), senderName: user.fullName || 'Patient' }),
       });
       if (!response.ok) {
         const result = await response.json() as { error?: string };
@@ -108,9 +110,9 @@ export const UserAppointmentChat: React.FC = () => {
     if (!window.confirm('Cancel this appointment request?')) return;
     setError('');
     try {
-      const user = auth.currentUser;
       if (!user) throw new Error('Sign in to cancel this appointment.');
-      const token = await user.getIdToken();
+      const token = await getToken();
+      if (!token) throw new Error('A Clerk session token could not be created.');
       const response = await fetch('/api/admin', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },

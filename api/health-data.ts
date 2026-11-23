@@ -2,8 +2,9 @@ import 'dotenv/config';
 import { createClient } from '@libsql/client';
 import { randomUUID } from 'node:crypto';
 import type { IncomingMessage, ServerResponse } from 'node:http';
+import { authenticateClerk } from './clerk-auth.js';
 
-type ApiRequest = IncomingMessage & { body?: unknown };
+type ApiRequest = IncomingMessage & { body?: unknown; headers: IncomingMessage['headers'] & { authorization?: string } };
 type ApiResponse = ServerResponse & {
   status: (code: number) => ApiResponse;
   json: (body: unknown) => void;
@@ -106,8 +107,9 @@ export default async function handler(request: ApiRequest, response: ApiResponse
     return response.status(500).json({ error: 'Database initialization failed.' });
   }
 
-  const ownerUid = text(request.headers['x-user-id'], 128);
-  if (!ownerUid) return response.status(401).json({ error: 'Firebase user ID is required.' });
+  const authenticated = await authenticateClerk(request);
+  if (!authenticated) return response.status(401).json({ error: 'A valid Clerk session is required.' });
+  const ownerUid = authenticated.sub;
 
   if (request.method === 'GET') {
     const resource = text(request.headers['x-resource'], 40);

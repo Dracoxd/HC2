@@ -1,5 +1,5 @@
 import React, { FormEvent, useEffect, useMemo, useRef, useState } from 'react';
-import { auth } from '../firebase';
+import { useAuth, useUser } from '@clerk/react';
 import { AdminSiteContentItem, ClinicPublicSettings, PublicSiteContent } from '../types';
 import { ImagePlus } from 'lucide-react';
 
@@ -136,10 +136,7 @@ async function optimizeAnnouncementImage(file: File) {
   });
 }
 
-async function postAdminAction(action: string, payload: Record<string, unknown>) {
-  const user = auth.currentUser;
-  if (!user) throw new Error('Sign in as an administrator to manage website content.');
-  const token = await user.getIdToken();
+async function postAdminActionWithToken(token: string, action: string, payload: Record<string, unknown>) {
   const response = await fetch('/api/admin', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
@@ -151,6 +148,14 @@ async function postAdminAction(action: string, payload: Record<string, unknown>)
 }
 
 export const AdminContentManager: React.FC = () => {
+  const { getToken } = useAuth();
+  const { user } = useUser();
+  const postAdminAction = async (action: string, payload: Record<string, unknown>) => {
+    if (!user) throw new Error('Sign in as an administrator to manage website content.');
+    const token = await getToken();
+    if (!token) throw new Error('A Clerk session token could not be created.');
+    return postAdminActionWithToken(token, action, payload);
+  };
   const [type, setType] = useState<ContentType>('news');
   const [items, setItems] = useState<AdminSiteContentItem[]>([]);
   const [settings, setSettings] = useState<ClinicPublicSettings | null>(null);
@@ -180,9 +185,9 @@ export const AdminContentManager: React.FC = () => {
 
   const load = async () => {
     try {
-      const user = auth.currentUser;
       if (!user) throw new Error('Sign in as an administrator to manage website content.');
-      const token = await user.getIdToken();
+      const token = await getToken();
+      if (!token) throw new Error('A Clerk session token could not be created.');
       const response = await fetch('/api/admin?mode=site_content', {
         headers: { Authorization: `Bearer ${token}` },
         cache: 'no-store',
@@ -214,9 +219,9 @@ export const AdminContentManager: React.FC = () => {
       if (loadingContent || savingRef.current || document.visibilityState === 'hidden') return;
       loadingContent = true;
       try {
-        const user = auth.currentUser;
         if (!user) return;
-        const token = await user.getIdToken();
+        const token = await getToken();
+        if (!token) return;
         const response = await fetch('/api/admin?mode=site_content', {
           headers: { Authorization: `Bearer ${token}` },
           cache: 'no-store',

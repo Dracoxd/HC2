@@ -1,5 +1,5 @@
 import React, { FormEvent, useEffect, useMemo, useState } from 'react';
-import { auth } from '../firebase';
+import { useAuth, useUser } from '@clerk/react';
 import { CalendarDays, Check, CheckCircle2, ChevronLeft, Clock3, LockKeyhole, MessageCircle, Search, Send, Trash2, X } from 'lucide-react';
 import { AdminCalendar, SlotSetting, SlotSettingsForm } from './AdminCalendar';
 import { AdminContentManager } from './AdminContentManager';
@@ -33,6 +33,8 @@ interface ChatMessage {
 }
 
 export const AdminPanel: React.FC = () => {
+  const { getToken, signOut } = useAuth();
+  const { user } = useUser();
   const [appointments, setAppointments] = useState<AppointmentRow[]>([]);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [slotSettings, setSlotSettings] = useState<SlotSetting[]>([]);
@@ -48,9 +50,9 @@ export const AdminPanel: React.FC = () => {
 
   const loadWorkspace = async () => {
     try {
-      const user = auth.currentUser;
       if (!user) return;
-      const token = await user.getIdToken();
+      const token = await getToken();
+      if (!token) return;
       const response = await fetch('/api/admin', { headers: { Authorization: `Bearer ${token}` } });
       if (!response.ok) throw new Error(response.status === 403 ? 'This account is not an admin.' : 'Admin workspace could not be loaded.');
       const data = await response.json() as { role: string; appointments: AppointmentRow[]; messages: ChatMessage[]; slotSettings?: SlotSetting[] };
@@ -59,7 +61,8 @@ export const AdminPanel: React.FC = () => {
         second.created_at.localeCompare(first.created_at) || second.id.localeCompare(first.id)));
       setMessages(data.messages);
       setSlotSettings(data.slotSettings ?? []);
-      const statusToken = await user.getIdToken();
+      const statusToken = await getToken();
+      if (!statusToken) throw new Error('A Clerk session token could not be created.');
       const statusResponse = await fetch('/api/admin?mode=clinic_status', {
         headers: { Authorization: `Bearer ${statusToken}` },
         cache: 'no-store',
@@ -128,9 +131,9 @@ export const AdminPanel: React.FC = () => {
       }
     }
     try {
-      const user = auth.currentUser;
       if (!user) return;
-      const token = await user.getIdToken();
+      const token = await getToken();
+      if (!token) return;
       const response = await fetch('/api/admin', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
@@ -160,9 +163,9 @@ export const AdminPanel: React.FC = () => {
   const updateClinicStatus = async (isOpen: boolean) => {
     setClinicStatusSaving(true);
     try {
-      const user = auth.currentUser;
       if (!user) throw new Error('Sign in to update clinic status.');
-      const token = await user.getIdToken();
+      const token = await getToken();
+      if (!token) throw new Error('A Clerk session token could not be created.');
       const response = await fetch('/api/admin', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
@@ -182,9 +185,9 @@ export const AdminPanel: React.FC = () => {
   };
 
   const saveSlotSettings = async (date: string, settings: SlotSettingsForm) => {
-    const user = auth.currentUser;
     if (!user) throw new Error('Sign in to manage appointment availability.');
-    const token = await user.getIdToken();
+    const token = await getToken();
+    if (!token) throw new Error('A Clerk session token could not be created.');
     const response = await fetch('/api/admin', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + token },
@@ -205,9 +208,9 @@ export const AdminPanel: React.FC = () => {
     event.preventDefault();
     if (!selected || !chatInput.trim()) return;
     try {
-      const user = auth.currentUser;
       if (!user) return;
-      const token = await user.getIdToken();
+      const token = await getToken();
+      if (!token) return;
       const response = await fetch('/api/admin', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
@@ -229,7 +232,7 @@ export const AdminPanel: React.FC = () => {
             <img src={centerPhoto} alt="" className="h-10 w-10 shrink-0 rounded-full border border-white/25 object-cover sm:h-12 sm:w-12" />
             <div className="min-w-0"><div className="flex flex-wrap items-center gap-x-2 gap-y-0.5"><span className="text-[9px] font-bold uppercase tracking-[0.12em] text-white/70 sm:text-[11px] sm:tracking-[0.16em]">Health center staff</span><span className="border border-white/30 bg-white/10 px-1.5 py-0.5 text-[9px] font-extrabold tracking-wider text-white sm:px-2 sm:text-[10px]">ADMIN</span></div><h1 className="mt-0.5 truncate text-sm font-bold text-white sm:text-lg">Appointment management</h1></div>
           </div>
-          <button type="button" onClick={() => void auth.signOut()} className="min-h-11 shrink-0 border border-white/30 px-3 py-2 text-xs font-bold text-white hover:bg-white/10 sm:px-4 sm:text-sm">Sign out</button>
+          <button type="button" onClick={() => void signOut()} className="min-h-11 shrink-0 border border-white/30 px-3 py-2 text-xs font-bold text-white hover:bg-white/10 sm:px-4 sm:text-sm">Sign out</button>
         </div>
       </header>
 

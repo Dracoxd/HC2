@@ -2,8 +2,7 @@ import 'dotenv/config';
 import { createClient } from '@libsql/client';
 import { randomUUID } from 'node:crypto';
 import type { IncomingMessage, ServerResponse } from 'node:http';
-import { applicationDefault, cert, getApps, initializeApp } from 'firebase-admin/app';
-import { getAuth } from 'firebase-admin/auth';
+import { authenticateClerk } from './clerk-auth.js';
 import { clinicPublicSettingKeys, ensureSiteContent, getContentDatabase, readSiteContent, validateSiteContent } from './site-content-store.js';
 
 type ApiRequest = IncomingMessage & { body?: unknown; headers: IncomingMessage['headers'] & { authorization?: string } };
@@ -49,23 +48,6 @@ function text(value: unknown, limit: number) {
 function announcementImageId(value: unknown) {
   if (typeof value !== 'string') return null;
   return /^\/api\/content-image\?id=([0-9a-f-]{36})$/i.exec(value)?.[1] ?? null;
-}
-
-function getFirebaseAdmin() {
-  if (getApps().length > 0) return getAuth();
-  const serviceAccountJson = process.env.FIREBASE_SERVICE_ACCOUNT_JSON?.trim();
-  let credential;
-  if (serviceAccountJson) {
-    try {
-      credential = cert(JSON.parse(serviceAccountJson));
-    } catch {
-      throw new Error('FIREBASE_SERVICE_ACCOUNT_JSON is not valid JSON or is missing service-account fields.');
-    }
-  } else {
-    credential = applicationDefault();
-  }
-  initializeApp({ credential });
-  return getAuth();
 }
 
 async function initializeAdminDatabase(db: ReturnType<typeof createClient>) {
@@ -132,23 +114,28 @@ async function initializeAdminDatabase(db: ReturnType<typeof createClient>) {
 }
 
 async function authenticate(request: ApiRequest) {
-  const authorization = text(request.headers.authorization, 2000);
-  const token = authorization.startsWith('Bearer ') ? authorization.slice(7) : '';
-  if (!token) return null;
-  try {
-    return await getFirebaseAdmin().verifyIdToken(token);
-  } catch {
-    return null;
-  }
+  return authenticateClerk(request);
 }
 
-function isAdmin(decoded: Awaited<ReturnType<ReturnType<typeof getFirebaseAdmin>['verifyIdToken']>>) {
-  if (decoded.admin === true) return true;
+function isAdmin(decoded: NonNullable<Awaited<ReturnType<typeof authenticateClerk>>>) {
+  if (decoded.metadata && typeof decoded.metadata === 'object' && 'role' in decoded.metadata && decoded.metadata.role === 'admin') return true;
+  const publicMetadata = 'public_metadata' in decoded ? decoded.public_metadata : undefined;
+  if (publicMetadata && typeof publicMetadata === 'object' && 'role' in publicMetadata && publicMetadata.role === 'admin') return true;
   const allowedUid = process.env.ADMIN_UIDS?.split(',').map((uid) => uid.trim()).filter(Boolean) ?? [];
-  if (allowedUid.includes(decoded.uid)) return true;
+  if (allowedUid.includes(decoded.sub)) return true;
   const allowedEmails = process.env.ADMIN_EMAILS?.split(',').map((email) => email.trim().toLowerCase()).filter(Boolean) ?? [];
-  return typeof decoded.email === 'string'
-    && allowedEmails.includes(decoded.email.toLowerCase());
+  const candidates = [
+    typeof decoded.email === 'string' ? decoded.email : '',
+    typeof decoded.email_address === 'string' ? decoded.email_address : '',
+  ];
+  if (Array.isArray(decoded.email_addresses)) {
+    for (const entry of decoded.email_addresses) {
+      if (entry && typeof entry === 'object' && 'email_address' in entry && typeof entry.email_address === 'string') {
+        candidates.push(entry.email_address);
+      }
+    }
+  }
+  return candidates.some((email) => !!email && allowedEmails.includes(email.toLowerCase()));
 }
 
 export default async function handler(request: ApiRequest, response: ApiResponse) {
@@ -204,7 +191,7 @@ export default async function handler(request: ApiRequest, response: ApiResponse
                 AND appointment.chat_status != 'deleted'
                 AND message.sender_role = 'admin'
                 AND (chat_read.read_at IS NULL OR message.created_at > chat_read.read_at)`,
-        args: [decoded.uid, decoded.uid],
+        args: [decoded.sub, decoded.sub],
       });
       return response.status(200).json({ unreadCount: Number(result.rows[0]?.unread_count ?? 0) });
     } catch {
@@ -231,8 +218,8 @@ export default async function handler(request: ApiRequest, response: ApiResponse
       }
 
       const appointmentResult = appointmentId
-        ? await db.execute({ sql: "SELECT * FROM appointment_requests WHERE id = ? AND owner_uid = ? AND chat_status != 'deleted'", args: [appointmentId, decoded.uid] })
-        : await db.execute({ sql: "SELECT * FROM appointment_requests WHERE owner_uid = ? AND chat_status != 'deleted' ORDER BY created_at DESC", args: [decoded.uid] });
+        ? await db.execute({ sql: "SELECT * FROM appointment_requests WHERE id = ? AND owner_uid = ? AND chat_status != 'deleted'", args: [appointmentId, decoded.sub] })
+        : await db.execute({ sql: "SELECT * FROM appointment_requests WHERE owner_uid = ? AND chat_status != 'deleted' ORDER BY created_at DESC", args: [decoded.sub] });
       const ids = appointmentResult.rows.map((row) => String(row.id));
       const chatResult = ids.length > 0
         ? await db.execute({ sql: `SELECT * FROM appointment_messages WHERE appointment_id IN (${ids.map(() => '?').join(',')}) ORDER BY created_at ASC`, args: ids })
@@ -255,7 +242,7 @@ export default async function handler(request: ApiRequest, response: ApiResponse
       if (!appointmentId) return response.status(400).json({ error: 'Appointment is required.' });
       const appointment = await db.execute({
         sql: "SELECT id FROM appointment_requests WHERE id = ? AND owner_uid = ? AND chat_status != 'deleted'",
-        args: [appointmentId, decoded.uid],
+        args: [appointmentId, decoded.sub],
       });
       if (appointment.rows.length === 0) return response.status(404).json({ error: 'Appointment conversation not found.' });
       const latestMessage = await db.execute({
@@ -268,7 +255,7 @@ export default async function handler(request: ApiRequest, response: ApiResponse
         sql: `INSERT INTO appointment_chat_reads (appointment_id, user_uid, read_at)
               VALUES (?, ?, ?)
               ON CONFLICT(appointment_id, user_uid) DO UPDATE SET read_at = excluded.read_at`,
-        args: [appointmentId, decoded.uid, readAt],
+        args: [appointmentId, decoded.sub, readAt],
       });
       return response.status(200).json({ appointmentId, markedRead: true });
     }
@@ -279,12 +266,12 @@ export default async function handler(request: ApiRequest, response: ApiResponse
       const result = await db.execute({
         sql: `UPDATE appointment_requests SET status = 'cancelled'
               WHERE id = ? AND owner_uid = ? AND status IN ('pending', 'confirmed')`,
-        args: [appointmentId, decoded.uid],
+        args: [appointmentId, decoded.sub],
       });
       if (result.rowsAffected === 0) {
         const appointment = await db.execute({
           sql: 'SELECT status FROM appointment_requests WHERE id = ? AND owner_uid = ?',
-          args: [appointmentId, decoded.uid],
+          args: [appointmentId, decoded.sub],
         });
         if (appointment.rows.length === 0) return response.status(404).json({ error: 'Appointment was not found.' });
         return response.status(409).json({ error: 'Only pending or accepted appointments can be cancelled.' });
@@ -326,7 +313,7 @@ export default async function handler(request: ApiRequest, response: ApiResponse
       await contentDb.execute({
         sql: `INSERT INTO announcement_images (image_id, image_data, mime_type, created_at, created_by)
               VALUES (?, ?, ?, ?, ?)`,
-        args: [imageId, imageBytes, dataUrl[1], new Date().toISOString(), decoded.uid],
+        args: [imageId, imageBytes, dataUrl[1], new Date().toISOString(), decoded.sub],
       });
       return response.status(201).json({ imageUrl: `/api/content-image?id=${imageId}` });
     }
@@ -367,7 +354,7 @@ export default async function handler(request: ApiRequest, response: ApiResponse
               ON CONFLICT(content_type, content_id) DO UPDATE SET
                 content_json = excluded.content_json, published = excluded.published,
                 deleted = 0, updated_at = excluded.updated_at, updated_by = excluded.updated_by`,
-        args: [contentType, contentId, JSON.stringify(content), body.published ? 1 : 0, now, decoded.uid],
+        args: [contentType, contentId, JSON.stringify(content), body.published ? 1 : 0, now, decoded.sub],
       });
       if (previousImageId && previousImageId !== nextImageId) {
         await contentDb.execute({ sql: 'DELETE FROM announcement_images WHERE image_id = ?', args: [previousImageId] });
@@ -396,7 +383,7 @@ export default async function handler(request: ApiRequest, response: ApiResponse
         : null;
       const result = await contentDb.execute({
         sql: 'UPDATE public_site_content SET deleted = 1, published = 0, updated_at = ?, updated_by = ? WHERE content_type = ? AND content_id = ? AND deleted = 0',
-        args: [new Date().toISOString(), decoded.uid, contentType, contentId],
+        args: [new Date().toISOString(), decoded.sub, contentType, contentId],
       });
       if (result.rowsAffected === 0) return response.status(404).json({ error: 'Website content item was not found.' });
       const imageId = announcementImageId(existingContent?.imageUrl);
@@ -420,7 +407,7 @@ export default async function handler(request: ApiRequest, response: ApiResponse
               VALUES (?, ?, ?, ?)
               ON CONFLICT(setting_key) DO UPDATE SET setting_value = excluded.setting_value,
                 updated_at = excluded.updated_at, updated_by = excluded.updated_by`,
-        args: [key, value, now, decoded.uid],
+        args: [key, value, now, decoded.sub],
       });
       return response.status(200).json({ key, value, updatedAt: now });
     }
@@ -445,7 +432,7 @@ export default async function handler(request: ApiRequest, response: ApiResponse
               VALUES (?, ?, ?, ?)
               ON CONFLICT(setting_key) DO UPDATE SET setting_value = excluded.setting_value,
                 updated_at = excluded.updated_at, updated_by = excluded.updated_by`,
-        args: [key, (value as string).trim(), now, decoded.uid],
+        args: [key, (value as string).trim(), now, decoded.sub],
       })), 'write');
       return response.status(200).json({ updatedAt: now });
     }
@@ -663,13 +650,13 @@ export default async function handler(request: ApiRequest, response: ApiResponse
       if (appointment.rows.length === 0) return response.status(404).json({ error: 'Appointment not found.' });
       const row = appointment.rows[0];
       if (String(row.chat_status) === 'deleted') return response.status(410).json({ error: 'This conversation has been deleted.' });
-      if (!admin && String(row.owner_uid) !== decoded.uid) return response.status(403).json({ error: 'You cannot access this chat.' });
+      if (!admin && String(row.owner_uid) !== decoded.sub) return response.status(403).json({ error: 'You cannot access this chat.' });
       if (!admin && String(row.chat_status) === 'closed') return response.status(403).json({ error: 'This chat has been closed by the admin.' });
       const id = randomUUID();
       await db.execute({
         sql: `INSERT INTO appointment_messages (id, appointment_id, sender_uid, sender_role, sender_name, message, created_at)
               VALUES (?, ?, ?, ?, ?, ?, ?)`,
-        args: [id, appointmentId, decoded.uid, admin ? 'admin' : 'user', admin ? 'ADMIN' : text(body.senderName, 120) || 'Patient', message, new Date().toISOString()],
+        args: [id, appointmentId, decoded.sub, admin ? 'admin' : 'user', admin ? 'ADMIN' : text(body.senderName, 120) || 'Patient', message, new Date().toISOString()],
       });
       return response.status(201).json({ id, message });
     }
