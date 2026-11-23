@@ -26,10 +26,17 @@ const authAppearance = {
       display: 'flex',
       width: '100%',
       justifyContent: 'center',
+      alignItems: 'center',
+    },
+    cardBox: {
+      display: 'flex',
+      width: '100%',
+      justifyContent: 'center',
     },
     card: {
       width: '100%',
       maxWidth: '320px',
+      boxSizing: 'border-box',
       border: '1px solid #dce7e1',
       borderRadius: '12px',
       boxShadow: '0 8px 24px rgba(23, 58, 55, 0.1)',
@@ -68,7 +75,7 @@ export const AuthScreen: React.FC = () => {
             </div>
           </div>
         </div>
-        <div className="px-3 py-4 sm:px-4">
+        <div className="flex w-full justify-center px-3 py-4 sm:px-4">
           <SignIn routing="hash" appearance={authAppearance} />
         </div>
       </section>
