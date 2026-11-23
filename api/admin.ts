@@ -121,7 +121,10 @@ function isAdmin(decoded: NonNullable<Awaited<ReturnType<typeof authenticateCler
   if (decoded.metadata && typeof decoded.metadata === 'object' && 'role' in decoded.metadata && decoded.metadata.role === 'admin') return true;
   const publicMetadata = 'public_metadata' in decoded ? decoded.public_metadata : undefined;
   if (publicMetadata && typeof publicMetadata === 'object' && 'role' in publicMetadata && publicMetadata.role === 'admin') return true;
-  const allowedUid = process.env.ADMIN_UIDS?.split(',').map((uid) => uid.trim()).filter(Boolean) ?? [];
+  const allowedUid = (process.env.ADMIN_USER_IDS ?? process.env.ADMIN_UIDS ?? '')
+    .split(',')
+    .map((uid) => uid.trim())
+    .filter(Boolean);
   if (allowedUid.includes(decoded.sub)) return true;
   const allowedEmails = process.env.ADMIN_EMAILS?.split(',').map((email) => email.trim().toLowerCase()).filter(Boolean) ?? [];
   const candidates = [
