@@ -2,6 +2,7 @@ import React, { FormEvent, useEffect, useMemo, useState } from 'react';
 import { ChevronLeft, MessageCircle, Send, X } from 'lucide-react';
 import { useAuth, useUser } from '@clerk/react';
 import { useHealthCenter } from '../context/HealthCenterContext';
+import { formatAppointmentTime } from '../appointmentSchedule';
 
 interface UserAppointment {
   id: string;
@@ -22,6 +23,16 @@ interface UserMessage {
   message: string;
   created_at: string;
 }
+
+const getDisplayMessage = (message: string) => {
+  const legacyConfirmation = message.match(
+    /^Your appointment for (.+) on (\d{4}-\d{2}-\d{2}) at (.+?) has been automatically confirmed\. You can view this schedule in your appointment chat\./,
+  );
+  if (!legacyConfirmation) return message;
+
+  const [, service, date, time] = legacyConfirmation;
+  return `This is an automated message.\n\nYour appointment for ${service} on ${date} at ${time} has been automatically confirmed. You can view the schedule in your appointment chat.\n\nFilipino:\nAwtomatikong mensahe ito. Kumpirmado na ang iyong appointment para sa ${service} sa ${date}, ganap na ${time}. Maaari mong tingnan ang iskedyul sa chat ng iyong appointment.`;
+};
 
 export const UserAppointmentChat: React.FC = () => {
   const { getToken } = useAuth();
@@ -138,8 +149,8 @@ export const UserAppointmentChat: React.FC = () => {
           <aside className={`${selected ? 'hidden lg:block' : 'block'} border-b border-[#dfe6e1] lg:border-b-0 lg:border-r`}>
             {appointments.map((appointment) => (
               <button key={appointment.id} type="button" onClick={() => setSelectedId(appointment.id)} className={`w-full border-b border-[#edf1ee] px-4 py-4 text-left hover:bg-[#f4f7f4] ${selectedId === appointment.id ? 'bg-[#edf3ef]' : ''}`}>
-                <div className="flex items-start justify-between gap-3"><div><div className="text-sm font-bold text-[#17312e]">{appointment.service_name}</div><div className="mt-1 text-xs text-[#66736f]">{appointment.reference_code}</div></div><span className={`px-2 py-1 text-[10px] font-bold ${appointment.status === 'confirmed' ? 'bg-emerald-100 text-emerald-800' : appointment.status === 'completed' ? 'bg-sky-100 text-sky-800' : appointment.status === 'cancelled' || appointment.status === 'rejected' ? 'bg-rose-100 text-rose-800' : 'bg-amber-100 text-amber-800'}`}>{appointment.status}</span></div>
-                <div className="mt-2 text-xs text-[#66736f]">{appointment.preferred_date} · {appointment.preferred_time}</div>
+                <div className="flex items-start justify-between gap-3"><div><div className="text-sm font-bold text-[#17312e]">{appointment.service_name}</div><div className="mt-1 text-xs text-[#66736f]">{appointment.reference_code}</div></div><span className={`px-2 py-1 text-[10px] font-bold uppercase ${appointment.status === 'confirmed' ? 'bg-emerald-100 text-emerald-800' : appointment.status === 'completed' ? 'bg-sky-100 text-sky-800' : appointment.status === 'cancelled' || appointment.status === 'rejected' ? 'bg-rose-100 text-rose-800' : 'bg-amber-100 text-amber-800'}`}>{appointment.status}</span></div>
+                <div className="mt-2 text-xs text-[#66736f]">{appointment.preferred_date} · {formatAppointmentTime(appointment.preferred_time)}</div>
               </button>
             ))}
             {appointments.length === 0 && <p className="p-4 text-sm text-[#66736f]">No conversations yet</p>}
@@ -152,7 +163,7 @@ export const UserAppointmentChat: React.FC = () => {
                 {['pending', 'confirmed'].includes(selected.status) && <div className="flex flex-wrap items-center justify-between gap-2 border-b border-[#dfe6e1] bg-white px-3 py-2 sm:px-4"><p className="text-[11px] text-[#66736f]">Need to change your appointment? Message clinic staff here.</p><button type="button" onClick={() => void cancelSelectedAppointment()} className="min-h-10 border border-rose-200 px-3 text-xs font-bold text-rose-700">Cancel appointment</button></div>}
                 <div className="min-h-0 flex-1 space-y-2 overflow-y-auto px-3 py-4 sm:px-4">
                   {selectedMessages.map((message) => (
-                    <div key={message.id} className={`flex ${message.sender_role === 'user' ? 'justify-end' : 'justify-start'}`}><div className={`max-w-[78%] rounded-2xl px-4 py-2.5 text-sm ${message.sender_role === 'user' ? 'rounded-br-sm bg-[#17645c] text-white' : 'rounded-bl-sm bg-[#edf1ee] text-[#17312e]'}`}><div>{message.message}</div><div className={`mt-1 text-[10px] ${message.sender_role === 'user' ? 'text-white/70' : 'text-[#66736f]'}`}>{message.sender_name}</div></div></div>
+                    <div key={message.id} className={`flex ${message.sender_role === 'user' ? 'justify-end' : 'justify-start'}`}><div className={`max-w-[78%] rounded-2xl px-4 py-2.5 text-sm ${message.sender_role === 'user' ? 'rounded-br-sm bg-[#17645c] text-white' : 'rounded-bl-sm bg-[#edf1ee] text-[#17312e]'}`}><div className="whitespace-pre-line">{getDisplayMessage(message.message)}</div><div className={`mt-1 text-[10px] ${message.sender_role === 'user' ? 'text-white/70' : 'text-[#66736f]'}`}>{message.sender_name}</div></div></div>
                   ))}
                 </div>
                 {selected.chat_status === 'open' ? (

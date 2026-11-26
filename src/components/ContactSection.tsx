@@ -3,15 +3,17 @@ import { useHealthCenter } from '../context/HealthCenterContext';
 import { Clock, MapPin, CalendarDays, ShieldAlert } from 'lucide-react';
 
 export const ContactSection: React.FC = () => {
-  const { t, language, setBookingModalOpen, clinicOpen, appointmentRequestAvailability } = useHealthCenter();
-  const bookingEnabled = clinicOpen === true && appointmentRequestAvailability === 'available';
+  const { t, language, setBookingModalOpen, appointmentRequestAvailability } = useHealthCenter();
+  const bookingEnabled = appointmentRequestAvailability === 'available';
   const bookingLabel = appointmentRequestAvailability === 'pending'
     ? 'Appointment under review'
+    : appointmentRequestAvailability === 'confirmed'
+      ? 'Accepted appointment active'
     : appointmentRequestAvailability === 'checking'
       ? 'Checking request status'
       : appointmentRequestAvailability === 'error'
         ? 'Unable to check request'
-        : clinicOpen === true ? 'REQUEST AN APPOINTMENT' : clinicOpen === false ? 'CLOSED' : 'Checking availability';
+        : 'REQUEST AN APPOINTMENT';
 
   return (
     <section id="contact" className="py-16 sm:py-20 bg-[#f3f7f4] border-t border-slate-200">
@@ -24,7 +26,7 @@ export const ContactSection: React.FC = () => {
             {t.contactTitle}
           </h2>
           <p className="mt-3 text-base text-slate-600">
-            {language === 'fil' ? 'Magpadala ng online appointment request. Makikipag-ugnayan ang kawani para kumpirmahin ito.' : 'Send an appointment request online. Clinic staff will contact you to confirm.'}
+            {language === 'fil' ? 'Magpadala ng appointment request online anumang oras. Awtomatikong kinukumpirma ang mga request hanggang sa daily limit.' : 'Submit an appointment request online anytime. Requests are automatically confirmed up to the daily limit.'}
           </p>
         </div>
 
@@ -33,7 +35,7 @@ export const ContactSection: React.FC = () => {
             <CalendarDays className="w-5 h-5 text-teal-800 shrink-0 mt-1" />
             <div>
               <h3 className="text-sm font-bold text-slate-900">Online appointment</h3>
-              <p className="mt-1 text-sm text-slate-600">Choose a service and preferred date. Requests are confirmed by clinic staff.</p>
+              <p className="mt-1 text-sm text-slate-600">Submit an online request anytime. Requests are automatically accepted up to the daily limit; additional requests are reviewed by staff.</p>
               <button disabled={!bookingEnabled} onClick={() => setBookingModalOpen(true)} className="mt-3 min-h-11 px-4 py-2.5 bg-teal-900 text-white text-sm font-bold rounded-md hover:bg-teal-950 disabled:cursor-not-allowed disabled:opacity-50">{bookingLabel}</button>
             </div>
           </div>

@@ -1,6 +1,8 @@
 import React, { useEffect, useState } from 'react';
-import { AlertTriangle, Bell, CalendarDays, Clock3, MapPin, Stethoscope } from 'lucide-react';
+import { createPortal } from 'react-dom';
+import { AlertTriangle, Bell, CalendarDays, Clock3, MapPin, Megaphone, Stethoscope } from 'lucide-react';
 import { useHealthCenter } from '../context/HealthCenterContext';
+import { BackToHomeButton } from './BackToHomeButton';
 
 export const PublicInformation: React.FC = () => {
   const { language, siteContent, siteContentError } = useHealthCenter();
@@ -13,17 +15,23 @@ export const PublicInformation: React.FC = () => {
 
   useEffect(() => {
     if (!viewingImage) return;
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
     const closeOnEscape = (event: KeyboardEvent) => {
       if (event.key === 'Escape') setViewingImage(null);
     };
     document.addEventListener('keydown', closeOnEscape);
-    return () => document.removeEventListener('keydown', closeOnEscape);
+    return () => {
+      document.removeEventListener('keydown', closeOnEscape);
+      document.body.style.overflow = previousOverflow;
+    };
   }, [viewingImage]);
 
   return (
     <section id="clinic-information" className="site-section-bg section-enter border-b border-[#dce7e1] py-8 sm:py-10">
-      <div className="mx-auto max-w-7xl px-5 sm:px-8 lg:px-12">
+      <div className="w-full px-5 sm:px-8 lg:px-12">
         {siteContentError && <p role="status" className="mb-4 border border-amber-200 bg-amber-50 px-4 py-3 text-xs text-amber-900">{isFilipino ? 'Hindi ma-refresh ang pinakabagong impormasyon ng klinika; ipinapakita ang huling na-save na nilalaman.' : 'Clinic information could not be refreshed; showing the last saved content.'}</p>}
+        <BackToHomeButton />
         <div className="breadcrumb">Home <span aria-hidden="true">/</span> <span className="font-semibold text-[#0f4d3c]">Information</span></div>
         <div className="mb-6">
           <div>
@@ -33,16 +41,79 @@ export const PublicInformation: React.FC = () => {
             </h2>
           </div>
         </div>
+      </div>
 
-        <div className="holiday-advisory" role="note">
-          <AlertTriangle className="h-5 w-5 shrink-0 text-amber-700" aria-hidden="true" />
-          <div><strong>{isFilipino ? 'Pabatid sa holiday:' : 'Holiday advisory:'}</strong> {isFilipino ? settings.holidayAdvisoryFil : settings.holidayAdvisory}</div>
-        </div>
+      <div className="w-full bg-[#0b3f32] px-5 py-5 shadow-lg shadow-[#0b3f32]/15 sm:px-8 sm:py-8 lg:px-12">
+          <div className="holiday-advisory" role="note">
+            <AlertTriangle className="h-5 w-5 shrink-0 text-amber-700" aria-hidden="true" />
+            <div><strong>{isFilipino ? 'Pabatid sa holiday:' : 'Holiday advisory:'}</strong> {isFilipino ? settings.holidayAdvisoryFil : settings.holidayAdvisory}</div>
+          </div>
 
-        <div className="grid gap-5 md:grid-cols-2">
-          <section className="site-card p-5 sm:p-6">
-            <h3 className="mb-4 flex items-center gap-2 text-base font-bold text-[#0f4d3c]"><Clock3 className="h-5 w-5 text-[#2c7a5f]" />{isFilipino ? 'Oras ng klinika' : 'Clinic hours'}</h3>
-            <ul className="bullet-list text-sm text-[#374151]">
+        <div className="space-y-8">
+          <section>
+            <div className="mb-4 flex items-center gap-3">
+              <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-white/10 text-emerald-100">
+                <Megaphone className="h-5 w-5" aria-hidden="true" />
+              </span>
+              <div>
+                <h3 className="text-lg font-bold text-white">{isFilipino ? 'Mga anunsyo' : 'Announcements'}</h3>
+                <p className="mt-0.5 text-xs text-emerald-100">{isFilipino ? 'Mga pinakabagong balita at pabatid mula sa health center' : 'The latest news and notices from the health center'}</p>
+              </div>
+            </div>
+            {updates.length > 0 ? (
+              <div className="space-y-4">
+                {updates.map((update) => (
+                  <article key={update.id} className="overflow-hidden rounded-xl border border-white/70 bg-white shadow-md shadow-black/10">
+                    <div className="p-4 sm:p-5">
+                      <div className="mb-2 flex flex-wrap items-center gap-2">
+                        <span className="rounded-full bg-[#eaf3ee] px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide text-[#17645c]">
+                          {isFilipino ? update.categoryFil : update.category}
+                        </span>
+                        <span className="inline-flex items-center gap-1 text-xs text-[#66736f]">
+                          <CalendarDays className="h-3.5 w-3.5" aria-hidden="true" />
+                          {update.date}
+                        </span>
+                      </div>
+                      <h4 className="text-base font-bold leading-snug text-[#123f36] sm:text-lg">
+                        {isFilipino ? update.titleFil : update.title}
+                      </h4>
+                      <p className="mt-2 whitespace-pre-line text-sm leading-relaxed text-[#43534d]">
+                        {(isFilipino ? update.contentFil : update.content) || (isFilipino ? update.summaryFil : update.summary)}
+                      </p>
+                      <div className="mt-4 border-t border-[#e7eee9] pt-3 text-xs font-medium text-[#66736f]">
+                        {update.author}
+                      </div>
+                    </div>
+                    {update.imageUrl && (
+                      <button
+                        type="button"
+                        onClick={() => setViewingImage({ url: update.imageUrl!, alt: isFilipino ? update.titleFil : update.title })}
+                        aria-label={isFilipino ? `Tingnan ang buong larawan: ${update.titleFil}` : `View full image: ${update.title}`}
+                        className="group block w-full cursor-zoom-in overflow-hidden border-t border-[#e1e9e4] bg-[#f3f7f4] focus-visible:outline-2 focus-visible:outline-offset-[-3px] focus-visible:outline-[#17645c]"
+                      >
+                        <img
+                          src={update.imageUrl}
+                          alt=""
+                          loading="lazy"
+                          decoding="async"
+                          className="mx-auto block h-auto w-full object-contain transition-transform duration-300 group-hover:scale-[1.02]"
+                        />
+                      </button>
+                    )}
+                  </article>
+                ))}
+              </div>
+            ) : (
+              <p className="rounded-lg border border-white/15 bg-white/5 px-4 py-5 text-sm text-emerald-50">
+                {isFilipino ? 'Wala pang bagong anunsyo.' : 'There are no current announcements.'}
+              </p>
+            )}
+          </section>
+
+          <div className="accessibility-dark-details mt-8 grid grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-3 lg:gap-6">
+          <section className="min-w-0">
+            <h3 className="mb-3 flex items-center gap-2 text-xl font-bold text-white lg:text-lg"><Clock3 className="h-5 w-5 text-emerald-200" />{isFilipino ? 'Oras ng klinika' : 'Clinic hours'}</h3>
+            <ul className="bullet-list my-0 text-base leading-7 text-emerald-50 lg:text-sm lg:leading-6">
               <li><strong>{isFilipino ? settings.clinicHoursFil : settings.clinicHours}</strong></li>
               <li>{isFilipino ? settings.doctorHoursFil : settings.doctorHours}</li>
               <li>{isFilipino ? settings.xrayHoursFil : settings.xrayHours}</li>
@@ -50,55 +121,40 @@ export const PublicInformation: React.FC = () => {
             </ul>
           </section>
 
-          <section className="site-card p-5 sm:p-6">
-            <h3 className="mb-4 flex items-center gap-2 text-base font-bold text-[#0f4d3c]"><Stethoscope className="h-5 w-5 text-[#2c7a5f]" />{isFilipino ? 'Mga serbisyo' : 'Services overview'}</h3>
+          <section className="min-w-0">
+            <h3 className="mb-3 flex items-center gap-2 text-xl font-bold text-white lg:text-lg"><Stethoscope className="h-5 w-5 text-emerald-200" />{isFilipino ? 'Mga serbisyo' : 'Services overview'}</h3>
             {featuredServices.length > 0 ? (
-              <ul className="bullet-list text-sm text-[#374151]">
-                {featuredServices.map((service) => <li key={service.id}><strong>{isFilipino ? service.titleFil : service.title}</strong>{service.badge ? ` · ${isFilipino ? service.badgeFil : service.badge}` : ''}</li>)}
+              <ul className="bullet-list my-0 text-base leading-7 text-emerald-50 lg:text-sm lg:leading-6">
+                {featuredServices.map((service) => <li key={service.id}><strong>{isFilipino ? service.titleFil : service.title}</strong>{service.badge ? ` · ${service.badge}` : ''}</li>)}
               </ul>
-            ) : <p className="text-sm text-[#6b7280]">{isFilipino ? 'Wala pang nailathalang serbisyo.' : 'No services have been published yet.'}</p>}
+            ) : <p className="text-base text-emerald-50 lg:text-sm">{isFilipino ? 'Wala pang nailathalang serbisyo.' : 'No services have been published yet.'}</p>}
           </section>
 
-          <section className="site-card p-5 sm:p-6">
-            <h3 className="mb-4 flex items-center gap-2 text-base font-bold text-[#0f4d3c]"><Bell className="h-5 w-5 text-[#2c7a5f]" />{isFilipino ? 'Mga anunsyo' : 'Announcements'}</h3>
-            {updates.length > 0 ? (
-              <ul className="space-y-4">
-                {updates.map((update) => (
-                  <li key={update.id} className="flex items-start gap-3 border-t border-[#e7eee9] pt-3 first:border-0 first:pt-0">
-                    {update.imageUrl && <button type="button" onClick={() => setViewingImage({ url: update.imageUrl!, alt: isFilipino ? update.titleFil : update.title })} aria-label={isFilipino ? `Tingnan ang buong larawan: ${update.titleFil}` : `View full image: ${update.title}`} className="shrink-0 cursor-zoom-in overflow-hidden rounded-sm bg-[#eaf3ee]"><img src={update.imageUrl} alt="" loading="lazy" decoding="async" className="h-14 w-16 object-cover" /></button>}
-                    <div className="min-w-0">
-                      <p className="text-sm font-semibold text-[#0f4d3c]">{isFilipino ? update.titleFil : update.title}</p>
-                      <p className="mt-1 line-clamp-2 text-xs leading-relaxed text-[#6b7280]">{isFilipino ? update.summaryFil : update.summary}</p>
-                    </div>
-                  </li>
-                ))}
-              </ul>
-            ) : <p className="text-sm text-[#6b7280]">{isFilipino ? 'Wala pang bagong anunsyo.' : 'There are no current announcements.'}</p>}
-          </section>
-
-          <section className="site-card p-5 sm:p-6">
-            <h3 className="mb-4 flex items-center gap-2 text-base font-bold text-[#0f4d3c]"><CalendarDays className="h-5 w-5 text-[#2c7a5f]" />{isFilipino ? 'Paparating na outreach' : 'Upcoming outreach'}</h3>
+          <section className="min-w-0">
+            <h3 className="mb-3 flex items-center gap-2 text-xl font-bold text-white lg:text-lg"><CalendarDays className="h-5 w-5 text-emerald-200" />{isFilipino ? 'Paparating na outreach' : 'Upcoming outreach'}</h3>
             {outreach.length > 0 ? (
-              <ul className="bullet-list text-sm text-[#374151]">
-                {outreach.map((program) => <li key={program.id}><strong>{isFilipino ? program.titleFil : program.title}</strong><span className="mt-1 flex items-start gap-1.5 text-xs text-[#6b7280]"><MapPin className="mt-0.5 h-3.5 w-3.5 shrink-0" />{program.location}</span></li>)}
+              <ul className="bullet-list my-0 text-base leading-7 text-emerald-50 lg:text-sm lg:leading-6">
+                {outreach.map((program) => <li key={program.id}><strong>{isFilipino ? program.titleFil : program.title}</strong><span className="mt-1 flex items-start gap-1.5 text-sm text-emerald-100 lg:text-xs"><MapPin className="mt-0.5 h-3.5 w-3.5 shrink-0" />{program.location}</span></li>)}
               </ul>
-            ) : <p className="text-sm text-[#6b7280]">{isFilipino ? 'Wala pang naka-iskedyul na outreach.' : 'No outreach programs are currently scheduled.'}</p>}
+            ) : <p className="text-base text-emerald-50 lg:text-sm">{isFilipino ? 'Wala pang naka-iskedyul na outreach.' : 'No outreach programs are currently scheduled.'}</p>}
           </section>
+          </div>
         </div>
       </div>
-      {viewingImage && (
+      {viewingImage && createPortal(
         <div
           role="dialog"
           aria-modal="true"
           aria-label={viewingImage.alt}
-          className="fixed inset-0 z-[70] flex items-center justify-center bg-slate-950/90 p-2 pt-[max(0.5rem,env(safe-area-inset-top))] pb-[max(0.5rem,env(safe-area-inset-bottom))] sm:p-8"
+          className="fixed inset-0 z-[70] flex h-[100dvh] w-full items-center justify-center overflow-hidden bg-slate-950/90 p-3 pt-[max(0.75rem,env(safe-area-inset-top))] pb-[max(0.75rem,env(safe-area-inset-bottom))] sm:p-8"
           onMouseDown={(event) => { if (event.target === event.currentTarget) setViewingImage(null); }}
         >
           <button type="button" onClick={() => setViewingImage(null)} aria-label="Close image" className="absolute right-[max(0.75rem,env(safe-area-inset-right))] top-[max(0.75rem,env(safe-area-inset-top))] flex h-11 w-11 items-center justify-center rounded-full bg-white/10 text-white hover:bg-white/20">
             <span className="text-xl leading-none">×</span>
           </button>
-          <img src={viewingImage.url} alt={viewingImage.alt} className="max-h-[calc(100dvh-1rem-env(safe-area-inset-top)-env(safe-area-inset-bottom))] max-w-full object-contain sm:max-h-[92vh]" />
-        </div>
+          <img src={viewingImage.url} alt={viewingImage.alt} className="block h-auto w-auto max-h-[calc(100dvh-env(safe-area-inset-top)-env(safe-area-inset-bottom)-2rem)] max-w-[calc(100vw-2rem)] object-contain" />
+        </div>,
+        document.body,
       )}
     </section>
   );
