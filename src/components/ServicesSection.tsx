@@ -7,6 +7,7 @@ import { Activity, ArrowRight, Baby, Clock, Heart, MapPin, Pill, ShieldAlert, Sm
 import animalBiteImage from '../assets/images/ANIMAL BITE.jpg';
 import bnsImage from '../assets/images/BNS.png';
 import checkupImage from '../assets/images/CHECK UP.jpg';
+import covidImage from '../assets/images/COVID 19.png';
 import dentalImage from '../assets/images/DENTAL CLINIC.jpg';
 import maternityImage from '../assets/images/MATERNITY.png';
 import medicinesImage from '../assets/images/MEDS.jpg';
@@ -16,6 +17,7 @@ const serviceImages: Partial<Record<ServiceDetail['category'], string>> = {
   animal_bite: animalBiteImage,
   nutrition: bnsImage,
   checkup: checkupImage,
+  antigen_testing: covidImage,
   dental: dentalImage,
   maternity: maternityImage,
   pharmacy: medicinesImage,
