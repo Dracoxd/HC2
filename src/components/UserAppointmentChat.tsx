@@ -8,6 +8,7 @@ interface AssistantMessage {
   id: string;
   role: 'user' | 'assistant';
   text: string;
+  provider?: string;
 }
 
 interface UserAppointment {
@@ -110,6 +111,9 @@ export const UserAppointmentChat: React.FC = () => {
   const [activeView, setActiveView] = useState<'messages' | 'assistant'>('messages');
   const [assistantDraft, setAssistantDraft] = useState('');
   const [assistantMessages, setAssistantMessages] = useState<AssistantMessage[]>([]);
+  const [assistantLoading, setAssistantLoading] = useState(false);
+  const [assistantError, setAssistantError] = useState('');
+  const [aiConsent, setAiConsent] = useState(false);
   const [error, setError] = useState('');
   const [lastStatuses, setLastStatuses] = useState<Record<string, string>>({});
 
@@ -193,17 +197,62 @@ export const UserAppointmentChat: React.FC = () => {
     }
   };
 
-  const askClinicAssistant = (event: FormEvent) => {
+  const askClinicAssistant = async (event: FormEvent) => {
     event.preventDefault();
     const question = assistantDraft.trim();
-    if (!question) return;
-    const answer = getClinicInformationAnswer(question, siteContent, isFilipino);
+    if (!question || assistantLoading) return;
+    if (!aiConsent) {
+      setAssistantError(isFilipino
+        ? 'Basahin at tanggapin muna ang paalala bago gamitin ang AI support.'
+        : 'Please accept the AI support notice before sending a question.');
+      return;
+    }
+    const messageId = Date.now();
+    setAssistantDraft('');
+    setAssistantError('');
     setAssistantMessages((current) => [
       ...current,
-      { id: `question-${Date.now()}`, role: 'user', text: question },
-      { id: `answer-${Date.now()}`, role: 'assistant', text: answer },
+      { id: `question-${messageId}`, role: 'user', text: question },
     ]);
-    setAssistantDraft('');
+    setAssistantLoading(true);
+    try {
+      const token = await getToken();
+      if (!token) throw new Error('Sign in again to use AI support.');
+      const response = await fetch('/api/support-chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ question }),
+      });
+      const responseBody = await response.text();
+      let result: { reply?: unknown; provider?: unknown; error?: string };
+      try {
+        result = JSON.parse(responseBody) as { reply?: unknown; provider?: unknown; error?: string };
+      } catch {
+        throw new Error(`AI support could not answer right now (HTTP ${response.status}).`);
+      }
+      if (!response.ok || typeof result.reply !== 'string' || typeof result.provider !== 'string') {
+        throw new Error(result.error || 'AI support could not answer right now.');
+      }
+      const { reply, provider } = result;
+      setAssistantMessages((current) => [
+        ...current,
+        { id: `answer-${messageId}`, role: 'assistant', text: reply, provider },
+      ]);
+    } catch (caught) {
+      const errorMessage = caught instanceof Error ? caught.message : 'AI support could not answer right now.';
+      setAssistantError(errorMessage);
+      setAssistantMessages((current) => [
+        ...current,
+        {
+          id: `answer-${messageId}`,
+          role: 'assistant',
+          text: getClinicInformationAnswer(question, siteContent, isFilipino),
+          provider: isFilipino ? 'Lokal na impormasyon' : 'Local clinic information',
+        },
+      ]);
+    } finally {
+      setAssistantLoading(false);
+    }
   };
 
   const cancelSelectedAppointment = async () => {
@@ -243,18 +292,29 @@ export const UserAppointmentChat: React.FC = () => {
             <div className="flex-1 space-y-3 overflow-y-auto px-4 py-4" aria-live="polite">
               <p className="border border-[#dfe6e1] bg-white p-3 text-sm text-[#66736f]">
                 {isFilipino
-                  ? 'Lokal na gabay para sa pampublikong impormasyon lamang. Huwag maglagay ng personal o pangkalusugang detalye.'
-                  : 'Local help for public clinic information only. Do not enter personal or health details.'}
+                  ? 'AI support para lamang sa pampublikong impormasyon ng klinika, hindi payong medikal. OpenRouter ang pangunahing provider at Gemini ang fallback. Ang tanong lang at pampublikong impormasyon ng klinika ang ipapadala; huwag maglagay ng pangalan, appointment details, o impormasyong pangkalusugan.'
+                  : 'AI support is for public clinic information only, not medical advice. OpenRouter is primary and Gemini is the fallback. Only your question and public clinic information are sent; do not include names, appointment details, or health information.'}
               </p>
+              <label className="flex items-start gap-2 border border-amber-200 bg-amber-50 p-3 text-xs leading-relaxed text-amber-950">
+                <input type="checkbox" checked={aiConsent} onChange={(event) => setAiConsent(event.target.checked)} className="mt-0.5 h-4 w-4 shrink-0 accent-teal-800" />
+                <span>{isFilipino
+                  ? 'Nauunawaan ko na ipoproseso ng OpenRouter o Gemini ang aking tanong at hindi ako magbabahagi ng personal, appointment, o pangkalusugang detalye.'
+                  : 'I understand OpenRouter or Gemini will process my question, and I will not share personal, appointment, or health details.'}</span>
+              </label>
               {assistantMessages.map((message) => (
                 <div key={message.id} className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-                  <p className={`max-w-[85%] whitespace-pre-line rounded-xl px-4 py-3 text-sm ${message.role === 'user' ? 'bg-[#17645c] text-white' : 'bg-white text-[#17312e] shadow-sm'}`}>{message.text}</p>
+                  <div className={`max-w-[85%] rounded-xl px-4 py-3 text-sm ${message.role === 'user' ? 'bg-[#17645c] text-white' : 'bg-white text-[#17312e] shadow-sm'}`}>
+                    {message.provider && <div className="mb-1 text-[10px] font-bold uppercase tracking-wide text-[#66736f]">{message.provider}</div>}
+                    <p className="whitespace-pre-line">{message.text}</p>
+                  </div>
                 </div>
               ))}
+              {assistantLoading && <p role="status" className="text-sm text-[#66736f]">{isFilipino ? 'Sumasagot ang AI support…' : 'AI support is responding…'}</p>}
+              {assistantError && <p role="alert" className="border border-amber-200 bg-amber-50 p-3 text-xs text-amber-950">{assistantError} {isFilipino ? 'Ipinakita ang lokal na impormasyon kung mayroon.' : 'A local information answer is shown when available.'}</p>}
             </div>
             <form onSubmit={askClinicAssistant} className="flex shrink-0 gap-2 border-t border-[#dfe6e1] bg-white p-3">
               <input value={assistantDraft} onChange={(event) => setAssistantDraft(event.target.value)} maxLength={500} placeholder={isFilipino ? 'Magtanong tungkol sa klinika' : 'Ask about the clinic'} className="h-11 min-w-0 flex-1 rounded-full border border-[#cfd8d2] px-4 text-sm outline-none focus:border-[#17645c]" />
-              <button type="submit" disabled={!assistantDraft.trim()} aria-label={isFilipino ? 'Ipadala ang tanong' : 'Ask question'} className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-[#17645c] text-white disabled:opacity-50"><Send className="h-4 w-4" /></button>
+              <button type="submit" disabled={!assistantDraft.trim() || !aiConsent || assistantLoading} aria-label={isFilipino ? 'Ipadala ang tanong' : 'Ask question'} className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-[#17645c] text-white disabled:opacity-50"><Send className="h-4 w-4" /></button>
             </form>
           </section>
         ) : (
