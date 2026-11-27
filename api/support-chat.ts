@@ -1,6 +1,10 @@
+import { randomUUID } from 'node:crypto';
+import type { createClient } from '@libsql/client';
 import type { IncomingMessage, ServerResponse } from 'node:http';
 import { authenticateClerk } from './clerk-auth.js';
 import { getContentDatabase, readSiteContent } from './site-content-store.js';
+import { DEFAULT_CLINIC_PUBLIC_SETTINGS, NEWS_UPDATES, OUTREACH_PROGRAMS, SERVICES_DATA } from '../src/data/healthCenterData.js';
+import type { PublicSiteContent } from '../src/types';
 
 type ApiRequest = IncomingMessage & {
   body?: unknown;
@@ -22,6 +26,54 @@ interface WebsiteSource {
 const requestCounts = new Map<string, { startedAt: number; count: number }>();
 const requestWindowMs = 60_000;
 const requestLimit = 8;
+const websiteAssistantAcknowledgment = 'Thanks for your question. I’m checking the clinic’s published website information and will reply shortly. / Salamat sa tanong mo. Sinusuri ko ang nailathalang impormasyon ng klinika at sasagot ako agad.';
+
+async function saveAppointmentConversation(
+  db: ReturnType<typeof createClient>,
+  appointmentId: string,
+  userId: string,
+  question: string,
+  answer: string,
+  clientMessageId: string,
+) {
+  const transaction = await db.transaction('write');
+  try {
+    const appointment = await transaction.execute({
+      sql: `SELECT patient_name, chat_status FROM appointment_requests
+            WHERE id = ? AND owner_uid = ?`,
+      args: [appointmentId, userId],
+    });
+    if (!appointment.rows[0] || String(appointment.rows[0].chat_status) !== 'open') {
+      await transaction.rollback();
+      return false;
+    }
+
+    const createdAt = new Date();
+    await transaction.execute({
+      sql: `INSERT INTO appointment_messages
+            (id, appointment_id, sender_uid, sender_role, sender_name, message, created_at)
+            VALUES (?, ?, ?, 'user', ?, ?, ?)`,
+      args: [clientMessageId, appointmentId, userId, String(appointment.rows[0].patient_name), question, createdAt.toISOString()],
+    });
+    await transaction.execute({
+      sql: `INSERT INTO appointment_messages
+            (id, appointment_id, sender_uid, sender_role, sender_name, message, created_at)
+            VALUES (?, ?, 'website-assistant', 'assistant', 'Website Assistant', ?, ?)`,
+      args: [`${clientMessageId}-ack`, appointmentId, websiteAssistantAcknowledgment, new Date(createdAt.getTime() + 1).toISOString()],
+    });
+    await transaction.execute({
+      sql: `INSERT INTO appointment_messages
+            (id, appointment_id, sender_uid, sender_role, sender_name, message, created_at)
+            VALUES (?, ?, 'website-assistant', 'assistant', 'Website Assistant', ?, ?)`,
+      args: [randomUUID(), appointmentId, answer, new Date(createdAt.getTime() + 2).toISOString()],
+    });
+    await transaction.commit();
+    return true;
+  } catch (error) {
+    await transaction.rollback();
+    throw error;
+  }
+}
 
 function consumeRateLimit(userId: string) {
   const now = Date.now();
@@ -208,7 +260,7 @@ async function askOpenRouter(apiKey: string, model: string, systemPrompt: string
       ...(appUrl && /^https?:\/\//i.test(appUrl) ? { 'HTTP-Referer': appUrl } : {}),
     },
     body: JSON.stringify({ model, messages, temperature: 0.2, max_tokens: 500 }),
-    signal: AbortSignal.timeout(20_000),
+    signal: AbortSignal.timeout(8_000),
   });
   if (!response.ok) throw new Error(`OpenRouter returned HTTP ${response.status}.`);
   const result = await response.json() as { choices?: Array<{ message?: { content?: unknown } }> };
@@ -229,7 +281,7 @@ async function askGemini(apiKey: string, model: string, systemPrompt: string, qu
       contents: [{ role: 'user', parts: [{ text: question }] }],
       generationConfig: { temperature: 0.2, maxOutputTokens: 500 },
     }),
-    signal: AbortSignal.timeout(20_000),
+    signal: AbortSignal.timeout(8_000),
   });
   if (!response.ok) throw new Error(`Gemini returned HTTP ${response.status}.`);
   const result = await response.json() as {
@@ -258,68 +310,122 @@ export default async function handler(request: ApiRequest, response: ApiResponse
   const body = request.body && typeof request.body === 'object'
     ? request.body as Record<string, unknown>
     : {};
-  if (Object.keys(body).some((key) => key !== 'question')) {
-    return response.status(400).json({ error: 'Only a single question can be sent to AI support.' });
+  if (Object.keys(body).some((key) => !['question', 'appointmentId', 'clientMessageId'].includes(key))) {
+    return response.status(400).json({ error: 'Only a question and its appointment conversation can be sent to AI support.' });
   }
   const question = typeof body.question === 'string' ? body.question.trim() : '';
-  if (!question || question.length > 500) {
-    return response.status(400).json({ error: 'Enter a question of 1 to 500 characters.' });
+  const appointmentId = typeof body.appointmentId === 'string' ? body.appointmentId.trim().slice(0, 128) : '';
+  const clientMessageId = typeof body.clientMessageId === 'string'
+    && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(body.clientMessageId)
+    ? body.clientMessageId
+    : '';
+  if (!appointmentId || !clientMessageId) {
+    return response.status(400).json({ error: 'An appointment conversation and valid message ID are required.' });
+  }
+  if (!question || question.length > 1200) {
+    return response.status(400).json({ error: 'Enter a question of 1 to 1200 characters.' });
   }
   if (containsPrivateDetails(question)) {
     return response.status(400).json({ error: 'For privacy, AI support cannot process contact details, appointment references, or personal health information.' });
-  }
-
-  const openRouterKey = process.env.OPENROUTER_API_KEY?.trim();
-  const geminiKey = process.env.GEMINI_API_KEY?.trim();
-  if (!openRouterKey && !geminiKey) {
-    return response.status(503).json({ error: 'AI support is not configured. Set OPENROUTER_API_KEY or GEMINI_API_KEY on the server.' });
   }
 
   const db = getContentDatabase();
   if (!db) return response.status(503).json({ error: 'Public clinic information storage is not configured.' });
 
   try {
-    const { content } = await readSiteContent(db);
+    const appointment = await db.execute({
+      sql: `SELECT chat_status FROM appointment_requests
+            WHERE id = ? AND owner_uid = ?`,
+      args: [appointmentId, user.sub],
+    });
+    if (!appointment.rows[0] || String(appointment.rows[0].chat_status) === 'deleted') {
+      return response.status(404).json({ error: 'Appointment conversation not found.' });
+    }
+    if (String(appointment.rows[0].chat_status) !== 'open') {
+      return response.status(409).json({ error: 'This appointment conversation is closed.' });
+    }
+
+    let content: PublicSiteContent;
+    let contentFallbackNotice = '';
+    try {
+      ({ content } = await readSiteContent(db));
+    } catch (error) {
+      console.error('Published clinic content could not be loaded; using bundled website content:', error);
+      content = {
+        services: SERVICES_DATA,
+        news: NEWS_UPDATES,
+        outreach: OUTREACH_PROGRAMS,
+        settings: DEFAULT_CLINIC_PUBLIC_SETTINGS,
+      };
+      contentFallbackNotice = 'The published content store could not be loaded; answers use the website’s bundled content.';
+    }
     const sources = findRelevantSources(question, createWebsiteSources(content));
-    if (sources.length === 0) {
-      return response.status(200).json({
-        ...createWebsiteFallback(sources),
-        provider: 'Website information',
-      });
-    }
-    const systemPrompt = createSystemPrompt(sources);
-    const openRouterModel = process.env.OPENROUTER_MODEL?.trim() || 'google/gemini-3.8-flash';
-    const geminiModel = process.env.GEMINI_MODEL?.trim() || 'gemini-3.8-flash';
-
-    if (openRouterKey) {
-      try {
-        const reply = await askOpenRouter(openRouterKey, openRouterModel, systemPrompt, question);
-        const grounded = validateGroundedAnswer(reply, sources);
-        if (!grounded) throw new Error('OpenRouter response did not cite the supplied website sources.');
-        return response.status(200).json({ ...grounded, provider: 'OpenRouter' });
-      } catch (error) {
-        console.error('OpenRouter support request failed; trying Gemini fallback.', error instanceof Error ? error.message : 'Unknown provider error.');
-      }
-    }
-
-    if (geminiKey) {
-      try {
-        const reply = await askGemini(geminiKey, geminiModel, systemPrompt, question);
-        const grounded = validateGroundedAnswer(reply, sources);
-        if (!grounded) throw new Error('Gemini response did not cite the supplied website sources.');
-        return response.status(200).json({ ...grounded, provider: 'Gemini' });
-      } catch (error) {
-        console.error('Gemini support request failed.', error instanceof Error ? error.message : 'Unknown provider error.');
-      }
-    }
-
-    return response.status(200).json({
+    let result: ReturnType<typeof createWebsiteFallback> & { provider: string; notice?: string } = {
       ...createWebsiteFallback(sources),
       provider: 'Website information',
-      notice: 'AI replies could not be grounded in the website sources; showing the published information instead.',
-    });
+    };
+    if (sources.length === 0) {
+      result = { ...createWebsiteFallback(sources), provider: 'Website information' };
+    } else {
+      const openRouterKey = process.env.OPENROUTER_API_KEY?.trim();
+      const geminiKey = process.env.GEMINI_API_KEY?.trim();
+      if (!openRouterKey && !geminiKey) {
+        return response.status(503).json({ error: 'AI support is not configured. Set OPENROUTER_API_KEY or GEMINI_API_KEY on the server.' });
+      }
+
+      const systemPrompt = createSystemPrompt(sources);
+      const openRouterModel = process.env.OPENROUTER_MODEL?.trim() || 'google/gemini-3.8-flash';
+      const geminiModel = process.env.GEMINI_MODEL?.trim() || 'gemini-3.8-flash';
+      let grounded: ReturnType<typeof validateGroundedAnswer> = null;
+
+      if (openRouterKey) {
+        try {
+          const reply = await askOpenRouter(openRouterKey, openRouterModel, systemPrompt, question);
+          grounded = validateGroundedAnswer(reply, sources);
+          if (!grounded) throw new Error('OpenRouter response did not cite the supplied website sources.');
+          result = { ...grounded, provider: 'OpenRouter' };
+        } catch (error) {
+          console.error('OpenRouter support request failed; trying Gemini fallback.', error instanceof Error ? error.message : 'Unknown provider error.');
+        }
+      }
+
+      if (!grounded && geminiKey) {
+        try {
+          const reply = await askGemini(geminiKey, geminiModel, systemPrompt, question);
+          grounded = validateGroundedAnswer(reply, sources);
+          if (!grounded) throw new Error('Gemini response did not cite the supplied website sources.');
+          result = { ...grounded, provider: 'Gemini' };
+        } catch (error) {
+          console.error('Gemini support request failed.', error instanceof Error ? error.message : 'Unknown provider error.');
+        }
+      }
+
+      if (!grounded) {
+        result = {
+          ...createWebsiteFallback(sources),
+          provider: 'Website information',
+          notice: 'AI replies could not be grounded in the website sources; showing the published information instead.',
+        };
+      }
+    }
+
+    if (contentFallbackNotice) {
+      result.notice = [result.notice, contentFallbackNotice].filter(Boolean).join(' ');
+    }
+    const persistedAnswer = result.sources.length > 0
+      ? `${result.reply}\n\nWebsite sources: ${result.sources.join(', ')}`
+      : result.reply;
+    let saved: boolean;
+    try {
+      saved = await saveAppointmentConversation(db, appointmentId, user.sub, question, persistedAnswer, clientMessageId);
+    } catch (error) {
+      console.error('Website assistant conversation could not be saved:', error);
+      return response.status(500).json({ error: 'The website assistant reply could not be saved. Please try again.' });
+    }
+    if (!saved) return response.status(409).json({ error: 'This appointment conversation is no longer available.' });
+    return response.status(200).json(result);
   } catch (error) {
-    console.error('Public clinic information for support chat could not be loaded:', error);
-    return response.status(503).json({ error: 'Public clinic information is temporarily unavailable.' });
+    console.error('Website support could not load the appointment conversation or published clinic information:', error);
+    return response.status(503).json({ error: 'Website support is temporarily unavailable.' });
   }
 }

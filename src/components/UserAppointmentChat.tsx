@@ -1,16 +1,8 @@
-import React, { FormEvent, useEffect, useMemo, useState } from 'react';
+import React, { FormEvent, useEffect, useMemo, useRef, useState } from 'react';
 import { ChevronLeft, MessageCircle, Send, X } from 'lucide-react';
 import { useAuth, useUser } from '@clerk/react';
 import { useHealthCenter } from '../context/HealthCenterContext';
 import { formatAppointmentTime } from '../appointmentSchedule';
-
-interface AssistantMessage {
-  id: string;
-  role: 'user' | 'assistant';
-  text: string;
-  provider?: string;
-  sources?: string[];
-}
 
 interface UserAppointment {
   id: string;
@@ -32,64 +24,11 @@ interface UserMessage {
   created_at: string;
 }
 
+const WEBSITE_ASSISTANT_ACKNOWLEDGMENT = 'Thanks for your question. I’m checking the clinic’s published website information and will reply shortly. / Salamat sa tanong mo. Sinusuri ko ang nailathalang impormasyon ng klinika at sasagot ako agad.';
+
 const isAutomatedReminder = (message: UserMessage) => message.sender_role === 'admin'
   && (message.message.startsWith('This is an automated reminder.')
     || message.message.startsWith('Reminder: Your appointment'));
-
-function isStringArray(value: unknown): value is string[] {
-  return Array.isArray(value) && value.every((item) => typeof item === 'string');
-}
-
-function getClinicInformationAnswer(question: string, siteContent: ReturnType<typeof useHealthCenter>['siteContent'], isFilipino: boolean) {
-  const query = question.toLocaleLowerCase();
-  const phone = siteContent.settings.contactPhone;
-  const email = siteContent.settings.contactEmail;
-
-  if (/contact|phone|call|email|telepono|tawag|ugnay/.test(query)) {
-    const details = [phone, email].filter(Boolean).join(' · ');
-    return details || (isFilipino
-      ? 'Walang nakalistang pampublikong numero o email sa ngayon. Tingnan ang impormasyon ng klinika para sa pinakabagong detalye.'
-      : 'No public phone number or email is currently listed. Check the clinic information page for updates.');
-  }
-
-  if (/address|location|where|saan|lokasyon|address/.test(query)) {
-    return isFilipino ? siteContent.settings.clinicAddressFil : siteContent.settings.clinicAddress;
-  }
-
-  if (/hour|schedule|open|time|oras|iskedyul|bukas/.test(query)) {
-    return [
-      isFilipino ? siteContent.settings.clinicHoursFil : siteContent.settings.clinicHours,
-      isFilipino ? siteContent.settings.doctorHoursFil : siteContent.settings.doctorHours,
-    ].filter(Boolean).join('\n');
-  }
-
-  if (/outreach|program|barangay|outreach|komunidad/.test(query) && siteContent.outreach.length > 0) {
-    return siteContent.outreach.map((item) => `${isFilipino ? item.titleFil : item.title}: ${item.scheduleDate} · ${item.location}`).join('\n');
-  }
-
-  const service = siteContent.services.find((item) => {
-    const title = isFilipino ? item.titleFil : item.title;
-    return title.length > 2 && query.includes(title.toLocaleLowerCase());
-  });
-  if (service) {
-    const description = isFilipino ? service.fullDescFil : service.fullDesc;
-    const schedule = isFilipino ? service.scheduleFil : service.schedule;
-    const requirements = isFilipino ? service.requirementsFil : service.requirements;
-    return [
-      description,
-      schedule && `${isFilipino ? 'Iskedyul' : 'Schedule'}: ${schedule}`,
-      requirements.length > 0 && `${isFilipino ? 'Mga kailangan' : 'Requirements'}: ${requirements.join(', ')}`,
-    ].filter(Boolean).join('\n');
-  }
-
-  if (/service|serbisyo|health|clinic|klinika/.test(query) && siteContent.services.length > 0) {
-    return siteContent.services.map((item) => isFilipino ? item.titleFil : item.title).join(', ');
-  }
-
-  return isFilipino
-    ? 'Makakatulong ako sa pampublikong impormasyon tungkol sa mga serbisyo, oras, lokasyon, outreach, at contact. Para sa payong medikal o agarang tulong, makipag-ugnayan sa health center o emergency services.'
-    : 'I can help with public information about services, hours, location, outreach, and contact details. For medical advice or urgent help, contact the health center or emergency services.';
-}
 
 const getDisplayMessage = (message: string) => {
   const legacyConfirmation = message.match(
@@ -106,7 +45,6 @@ export const UserAppointmentChat: React.FC = () => {
   const { user } = useUser();
   const {
     language,
-    siteContent,
     messagesOpen,
     setMessagesOpen,
     messagesReferenceCode,
@@ -115,16 +53,15 @@ export const UserAppointmentChat: React.FC = () => {
   } = useHealthCenter();
   const [appointments, setAppointments] = useState<UserAppointment[]>([]);
   const [messages, setMessages] = useState<UserMessage[]>([]);
+  const [optimisticMessage, setOptimisticMessage] = useState<UserMessage | null>(null);
   const [selectedId, setSelectedId] = useState('');
   const [draft, setDraft] = useState('');
-  const [activeView, setActiveView] = useState<'messages' | 'assistant'>('messages');
-  const [assistantDraft, setAssistantDraft] = useState('');
-  const [assistantMessages, setAssistantMessages] = useState<AssistantMessage[]>([]);
   const [assistantLoading, setAssistantLoading] = useState(false);
   const [assistantError, setAssistantError] = useState('');
   const [aiConsent, setAiConsent] = useState(false);
   const [error, setError] = useState('');
   const [lastStatuses, setLastStatuses] = useState<Record<string, string>>({});
+  const conversationRef = useRef<HTMLDivElement>(null);
 
   const loadChat = async () => {
     try {
@@ -163,8 +100,27 @@ export const UserAppointmentChat: React.FC = () => {
 
   const selected = useMemo(() => appointments.find((appointment) => appointment.id === selectedId), [appointments, selectedId]);
   const selectedMessages = useMemo(() => messages.filter((message) => message.appointment_id === selectedId), [messages, selectedId]);
-  const latestSelectedMessageId = selectedMessages.at(-1)?.id;
   const isFilipino = language === 'fil';
+  const visibleMessages = useMemo(() => {
+    let visible = selectedMessages;
+    const optimisticIsSelected = optimisticMessage?.appointment_id === selectedId;
+    if (optimisticIsSelected && !selectedMessages.some((message) => message.id === optimisticMessage.id)) {
+      visible = [...visible, optimisticMessage];
+    }
+    if (assistantLoading && optimisticIsSelected && selected
+      && !selectedMessages.some((message) => message.id === `${optimisticMessage.id}-ack`)) {
+      visible = [...visible, {
+        id: `${optimisticMessage.id}-ack`,
+        appointment_id: selectedId,
+        sender_role: 'assistant',
+        sender_name: 'Website Assistant',
+        message: WEBSITE_ASSISTANT_ACKNOWLEDGMENT,
+        created_at: new Date(new Date(optimisticMessage.created_at).getTime() + 1).toISOString(),
+      }];
+    }
+    return visible;
+  }, [assistantLoading, optimisticMessage, selected, selectedId, selectedMessages]);
+  const latestSelectedMessageId = visibleMessages.at(-1)?.id;
 
   useEffect(() => {
     if (!messagesReferenceCode) return;
@@ -181,48 +137,40 @@ export const UserAppointmentChat: React.FC = () => {
     });
   }, [messagesOpen, selected?.id, latestSelectedMessageId, markAppointmentMessagesRead]);
 
+  useEffect(() => {
+    if (!messagesOpen) setAiConsent(false);
+  }, [messagesOpen]);
+
+  useEffect(() => {
+    if (!messagesOpen || !selected) return;
+    const conversation = conversationRef.current;
+    if (conversation) conversation.scrollTop = conversation.scrollHeight;
+  }, [messagesOpen, selectedId, visibleMessages.length, assistantLoading]);
+
   if (!messagesOpen) return null;
 
-  const sendMessage = async (event: FormEvent) => {
+  const askClinicAssistant = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    if (!selected || !draft.trim()) return;
-    try {
-      if (!user) return;
-      const token = await getToken();
-      if (!token) return;
-      const response = await fetch('/api/admin', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ action: 'message', appointmentId: selected.id, message: draft.trim(), senderName: user.fullName || 'Patient' }),
-      });
-      if (!response.ok) {
-        const result = await response.json() as { error?: string };
-        throw new Error(result.error || 'Message could not be sent.');
-      }
-      setDraft('');
-      await loadChat();
-    } catch (caught) {
-      setError(caught instanceof Error ? caught.message : 'Message could not be sent.');
-    }
-  };
-
-  const askClinicAssistant = async (event: FormEvent) => {
-    event.preventDefault();
-    const question = assistantDraft.trim();
-    if (!question || assistantLoading) return;
+    const question = draft.trim();
+    if (!selected || !question || assistantLoading) return;
     if (!aiConsent) {
       setAssistantError(isFilipino
         ? 'Basahin at tanggapin muna ang paalala bago gamitin ang AI support.'
         : 'Please accept the AI support notice before sending a question.');
       return;
     }
-    const messageId = Date.now();
-    setAssistantDraft('');
+    const messageId = crypto.randomUUID();
+    setError('');
     setAssistantError('');
-    setAssistantMessages((current) => [
-      ...current,
-      { id: `question-${messageId}`, role: 'user', text: question },
-    ]);
+    setOptimisticMessage({
+      id: messageId,
+      appointment_id: selected.id,
+      sender_role: 'user',
+      sender_name: selected.patient_name,
+      message: question,
+      created_at: new Date().toISOString(),
+    });
+    setDraft('');
     setAssistantLoading(true);
     try {
       const token = await getToken();
@@ -230,41 +178,26 @@ export const UserAppointmentChat: React.FC = () => {
       const response = await fetch('/api/support-chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ question }),
+        body: JSON.stringify({ appointmentId: selected.id, clientMessageId: messageId, question }),
       });
       const responseBody = await response.text();
-      let result: { reply?: unknown; provider?: unknown; sources?: unknown; notice?: string; error?: string };
+      let result: { reply?: unknown; sources?: unknown; notice?: string; error?: string };
       try {
-        result = JSON.parse(responseBody) as { reply?: unknown; provider?: unknown; sources?: unknown; notice?: string; error?: string };
+        result = JSON.parse(responseBody) as { reply?: unknown; sources?: unknown; notice?: string; error?: string };
       } catch {
-        throw new Error(`AI support could not answer right now (HTTP ${response.status}).`);
+        throw new Error(`The website assistant could not answer right now (HTTP ${response.status}).`);
       }
-      if (!response.ok || typeof result.reply !== 'string' || typeof result.provider !== 'string'
-        || !isStringArray(result.sources)) {
-        throw new Error(result.error || 'AI support could not answer right now.');
+      if (!response.ok || typeof result.reply !== 'string'
+        || !Array.isArray(result.sources) || result.sources.some((source) => typeof source !== 'string')) {
+        throw new Error(result.error || 'The website assistant could not answer right now.');
       }
-      const { reply, provider, sources } = result;
-      if (result.notice) {
-        setAssistantError(isFilipino
-          ? 'Hindi napatunayan ang sagot ng AI mula sa mga sanggunian sa website, kaya ipinapakita ang nailathalang impormasyon.'
-          : result.notice);
-      }
-      setAssistantMessages((current) => [
-        ...current,
-        { id: `answer-${messageId}`, role: 'assistant', text: reply, provider, sources },
-      ]);
+      if (result.notice) setAssistantError(result.notice);
+      await loadChat();
+      setOptimisticMessage(null);
     } catch (caught) {
-      const errorMessage = caught instanceof Error ? caught.message : 'AI support could not answer right now.';
-      setAssistantError(errorMessage);
-      setAssistantMessages((current) => [
-        ...current,
-        {
-          id: `answer-${messageId}`,
-          role: 'assistant',
-          text: getClinicInformationAnswer(question, siteContent, isFilipino),
-          provider: isFilipino ? 'Lokal na impormasyon' : 'Local clinic information',
-        },
-      ]);
+      setOptimisticMessage(null);
+      setDraft(question);
+      setAssistantError(caught instanceof Error ? caught.message : 'The website assistant could not answer right now.');
     } finally {
       setAssistantLoading(false);
     }
@@ -293,79 +226,65 @@ export const UserAppointmentChat: React.FC = () => {
 
   return (
     <section role="dialog" aria-modal="true" aria-labelledby="messages-title" className="fixed inset-0 z-[60] flex items-center justify-center bg-slate-950/50 p-2 pt-[max(0.5rem,env(safe-area-inset-top))] pb-[max(0.5rem,env(safe-area-inset-bottom))] sm:p-6" onMouseDown={(event) => { if (event.target === event.currentTarget) setMessagesOpen(false); }}>
-      <div className="flex max-h-[calc(100dvh-1rem-env(safe-area-inset-top)-env(safe-area-inset-bottom))] w-full max-w-3xl flex-col overflow-hidden rounded-2xl border border-[#dfe6e1] bg-[#f8faf7] shadow-2xl sm:max-h-[82dvh]">
-        <header className="flex shrink-0 items-center justify-between border-b border-[#dfe6e1] bg-white px-4 py-3 sm:px-5 sm:py-4">
-          <div><div className="text-xs font-bold text-[#17645c]">Your appointments</div><h2 id="messages-title" className="mt-1 text-xl font-bold text-[#17312e]">Messages</h2></div>
-          <button type="button" onClick={() => setMessagesOpen(false)} aria-label="Close messages" className="p-2 text-[#66736f] hover:bg-[#f1f4f1]"><X className="h-5 w-5" /></button>
+      <div className="flex h-[calc(100dvh-1rem-env(safe-area-inset-top)-env(safe-area-inset-bottom))] max-h-[calc(100dvh-1rem-env(safe-area-inset-top)-env(safe-area-inset-bottom))] w-full max-w-lg flex-col overflow-hidden rounded-3xl border border-[#dfe6e1] bg-[#f8faf7] shadow-2xl sm:h-[min(420px,72dvh)] sm:max-h-[72dvh]">
+        <header className="flex shrink-0 items-center justify-between border-b border-[#e8eeea] bg-white px-4 py-2 sm:px-5">
+          <div><div className="text-[10px] font-bold text-[#17645c]">Your appointments</div><h2 id="messages-title" className="mt-0.5 text-base font-bold text-[#17312e]">Messages</h2></div>
+          <button type="button" onClick={() => setMessagesOpen(false)} aria-label="Close messages" className="rounded-full p-2 text-[#66736f] transition-colors hover:bg-[#f1f4f1]"><X className="h-5 w-5" /></button>
         </header>
-        <nav aria-label="Messages and clinic information" className="flex shrink-0 gap-2 border-b border-[#dfe6e1] bg-white px-4 py-2">
-          <button type="button" onClick={() => setActiveView('messages')} aria-pressed={activeView === 'messages'} className={`min-h-10 px-3 text-xs font-bold ${activeView === 'messages' ? 'bg-[#17645c] text-white' : 'text-[#66736f] hover:bg-[#f1f4f1]'}`}>Messages</button>
-          <button type="button" onClick={() => setActiveView('assistant')} aria-pressed={activeView === 'assistant'} className={`min-h-10 px-3 text-xs font-bold ${activeView === 'assistant' ? 'bg-[#17645c] text-white' : 'text-[#66736f] hover:bg-[#f1f4f1]'}`}>{isFilipino ? 'Impormasyon ng klinika' : 'Clinic information'}</button>
-        </nav>
-        {activeView === 'assistant' ? (
-          <section className="flex min-h-0 flex-1 flex-col bg-[#f8faf7]">
-            <div className="flex-1 space-y-3 overflow-y-auto px-4 py-4" aria-live="polite">
-              <p className="border border-[#dfe6e1] bg-white p-3 text-sm text-[#66736f]">
-                {isFilipino
-                  ? 'AI support para lamang sa pampublikong impormasyon ng klinika, hindi payong medikal. OpenRouter ang pangunahing provider at Gemini ang fallback. Ang tanong lang at pampublikong impormasyon ng klinika ang ipapadala; huwag maglagay ng pangalan, appointment details, o impormasyong pangkalusugan.'
-                  : 'AI support is for public clinic information only, not medical advice. OpenRouter is primary and Gemini is the fallback. Only your question and public clinic information are sent; do not include names, appointment details, or health information.'}
-              </p>
-              <label className="flex items-start gap-2 border border-amber-200 bg-amber-50 p-3 text-xs leading-relaxed text-amber-950">
-                <input type="checkbox" checked={aiConsent} onChange={(event) => setAiConsent(event.target.checked)} className="mt-0.5 h-4 w-4 shrink-0 accent-teal-800" />
-                <span>{isFilipino
-                  ? 'Nauunawaan ko na ipoproseso ng OpenRouter o Gemini ang aking tanong at hindi ako magbabahagi ng personal, appointment, o pangkalusugang detalye.'
-                  : 'I understand OpenRouter or Gemini will process my question, and I will not share personal, appointment, or health details.'}</span>
-              </label>
-              {assistantMessages.map((message) => (
-                <div key={message.id} className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-                  <div className={`max-w-[85%] rounded-xl px-4 py-3 text-sm ${message.role === 'user' ? 'bg-[#17645c] text-white' : 'bg-white text-[#17312e] shadow-sm'}`}>
-                    {message.provider && <div className="mb-1 text-[10px] font-bold uppercase tracking-wide text-[#66736f]">{message.provider}</div>}
-                    <p className="whitespace-pre-line">{message.text}</p>
-                    {message.sources && message.sources.length > 0 && <p className="mt-2 border-t border-[#dfe6e1] pt-2 text-[10px] text-[#66736f]">{isFilipino ? 'Mga sanggunian sa website:' : 'Website sources:'} {message.sources.join(', ')}</p>}
-                  </div>
-                </div>
-              ))}
-              {assistantLoading && <p role="status" className="text-sm text-[#66736f]">{isFilipino ? 'Sumasagot ang AI support…' : 'AI support is responding…'}</p>}
-              {assistantError && <p role="alert" className="border border-amber-200 bg-amber-50 p-3 text-xs text-amber-950">{assistantError} {isFilipino ? 'Ipinakita ang lokal na impormasyon kung mayroon.' : 'A local information answer is shown when available.'}</p>}
-            </div>
-            <form onSubmit={askClinicAssistant} className="flex shrink-0 gap-2 border-t border-[#dfe6e1] bg-white p-3">
-              <input value={assistantDraft} onChange={(event) => setAssistantDraft(event.target.value)} maxLength={500} placeholder={isFilipino ? 'Magtanong tungkol sa klinika' : 'Ask about the clinic'} className="h-11 min-w-0 flex-1 rounded-full border border-[#cfd8d2] px-4 text-sm outline-none focus:border-[#17645c]" />
-              <button type="submit" disabled={!assistantDraft.trim() || !aiConsent || assistantLoading} aria-label={isFilipino ? 'Ipadala ang tanong' : 'Ask question'} className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-[#17645c] text-white disabled:opacity-50"><Send className="h-4 w-4" /></button>
-            </form>
-          </section>
-        ) : (
-        <div className="min-h-0 flex-1 overflow-y-auto">
-        <div className="overflow-hidden bg-white lg:grid lg:grid-cols-[300px_1fr]">
-          <aside className={`${selected ? 'hidden lg:block' : 'block'} border-b border-[#dfe6e1] lg:border-b-0 lg:border-r`}>
+        <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
+        <div className="grid min-h-0 flex-1 grid-rows-[minmax(0,1fr)] overflow-hidden bg-white lg:grid-cols-[190px_minmax(0,1fr)]">
+          <aside className={`${selected ? 'hidden lg:block' : 'block'} min-h-0 overflow-y-auto border-b border-[#dfe6e1] lg:border-b-0 lg:border-r`}>
             {appointments.map((appointment) => (
-              <button key={appointment.id} type="button" onClick={() => setSelectedId(appointment.id)} className={`w-full border-b border-[#edf1ee] px-4 py-4 text-left hover:bg-[#f4f7f4] ${selectedId === appointment.id ? 'bg-[#edf3ef]' : ''}`}>
+              <button key={appointment.id} type="button" onClick={() => { setAssistantError(''); setSelectedId(appointment.id); }} className={`w-full border-b border-[#edf1ee] px-3 py-3 text-left transition-colors hover:bg-[#f4f7f4] ${selectedId === appointment.id ? 'bg-[#edf3ef]' : ''}`}>
                 <div className="flex items-start justify-between gap-3"><div><div className="text-sm font-bold text-[#17312e]">{appointment.service_name}</div><div className="mt-1 text-xs text-[#66736f]">{appointment.reference_code}</div></div><span className={`px-2 py-1 text-[10px] font-bold uppercase ${appointment.status === 'confirmed' ? 'bg-emerald-100 text-emerald-800' : appointment.status === 'completed' ? 'bg-sky-100 text-sky-800' : ['cancelled', 'rejected', 'missed'].includes(appointment.status) ? 'bg-rose-100 text-rose-800' : 'bg-amber-100 text-amber-800'}`}>{appointment.status}</span></div>
-                <div className="mt-2 text-xs text-[#66736f]">{appointment.preferred_date} · {formatAppointmentTime(appointment.preferred_time)}</div>
+                <div className="mt-1.5 text-[11px] text-[#66736f]">{appointment.preferred_date} · {formatAppointmentTime(appointment.preferred_time)}</div>
               </button>
             ))}
-            {appointments.length === 0 && <p className="p-4 text-sm text-[#66736f]">No conversations yet</p>}
+            {appointments.length === 0 && <p className="p-4 text-sm text-[#66736f]">{isFilipino ? 'Wala pang pag-uusap.' : 'No conversations yet.'}</p>}
           </aside>
 
-          <div className={`${selected ? 'block' : 'hidden'} lg:block`}>
-            {!selected ? <div className="flex min-h-[360px] items-center justify-center text-sm text-[#66736f]">Select an appointment</div> : (
-              <div className="flex min-h-[min(420px,55dvh)] flex-col">
-                <div className="flex min-w-0 items-center gap-2 border-b border-[#dfe6e1] px-3 py-3 sm:px-4"><button type="button" onClick={() => setSelectedId('')} className="shrink-0 lg:hidden" aria-label="Back to conversations"><ChevronLeft className="h-5 w-5 text-[#17645c]" /></button><MessageCircle className="h-4 w-4 shrink-0 text-[#17645c]" /><div className="min-w-0"><div className="truncate text-sm font-bold">{selected.service_name}</div><div className="text-[11px] text-[#66736f]">{selected.chat_status === 'closed' ? 'Chat closed by clinic staff' : 'Chat open'}</div></div></div>
-                {['pending', 'confirmed'].includes(selected.status) && <div className="flex flex-wrap items-center justify-between gap-2 border-b border-[#dfe6e1] bg-white px-3 py-2 sm:px-4"><p className="text-[11px] text-[#66736f]">Need to change your appointment? Message clinic staff here.</p><button type="button" onClick={() => void cancelSelectedAppointment()} className="min-h-10 border border-rose-200 px-3 text-xs font-bold text-rose-700">Cancel appointment</button></div>}
-                <div className="min-h-0 flex-1 space-y-2 overflow-y-auto px-3 py-4 sm:px-4">
-                  {selectedMessages.map((message) => (
-                    <div key={message.id} className={`flex ${message.sender_role === 'user' ? 'justify-end' : 'justify-start'}`}><div className={`max-w-[78%] rounded-2xl px-4 py-2.5 text-sm ${message.sender_role === 'user' ? 'rounded-br-sm bg-[#17645c] text-white' : 'rounded-bl-sm bg-[#edf1ee] text-[#17312e]'}`}><div className="whitespace-pre-line">{getDisplayMessage(message.message)}</div><div className={`mt-1 text-[10px] ${message.sender_role === 'user' ? 'text-white/70' : 'text-[#66736f]'}`}>{message.sender_name}</div></div></div>
+          <div className={`${selected ? 'block' : 'hidden'} h-full min-h-0 min-w-0 overflow-hidden lg:block`}>
+            {!selected ? <div className="flex h-full min-h-[280px] items-center justify-center text-sm text-[#66736f]">{isFilipino ? 'Pumili ng appointment' : 'Select an appointment'}</div> : (
+              <div className="flex h-full min-h-0 flex-col overflow-hidden">
+                <div className="sticky top-0 z-10 flex min-w-0 shrink-0 items-center justify-between gap-2 border-b border-[#e7ece9] bg-white px-3 py-2 sm:px-4">
+                  <div className="flex min-w-0 items-center gap-2">
+                    <button type="button" onClick={() => setSelectedId('')} className="shrink-0 rounded-full p-1 hover:bg-[#f1f4f1] lg:hidden" aria-label={isFilipino ? 'Bumalik sa appointments' : 'Back to appointments'}><ChevronLeft className="h-5 w-5 text-[#17645c]" /></button>
+                    <MessageCircle className="h-4 w-4 shrink-0 text-[#17645c]" />
+                    <div className="min-w-0"><div className="truncate text-[13px] font-bold">{selected.service_name}</div><div className="text-[10px] text-[#66736f]">{selected.chat_status === 'closed' ? (isFilipino ? 'Sarado ang chat ng kawani' : 'Chat closed by clinic staff') : (isFilipino ? 'Website assistant' : 'Website assistant')}</div></div>
+                  </div>
+                  {['pending', 'confirmed'].includes(selected.status) && <button type="button" onClick={() => void cancelSelectedAppointment()} className="min-h-8 shrink-0 rounded-md border border-rose-200 px-2.5 text-[11px] font-bold text-rose-700 transition-colors hover:bg-rose-50">{isFilipino ? 'Kanselahin' : 'Cancel appointment'}</button>}
+                </div>
+                <div ref={conversationRef} aria-live="polite" className="min-h-0 flex-1 space-y-1.5 overflow-y-auto overscroll-contain bg-[#f7f9f8] px-3 py-2.5 sm:px-4">
+                  {visibleMessages.map((message) => (
+                    <div key={message.id} className={`flex ${message.sender_role === 'user' ? 'justify-end' : 'justify-start'}`}><div className={`max-w-[min(82%,28rem)] rounded-2xl px-2.5 py-1.5 text-[12px] leading-[1.4] ${message.sender_role === 'user' ? 'rounded-br-md bg-[#17645c] text-white' : 'rounded-bl-md border border-[#e8eeea] bg-white text-[#17312e]'}`}><div className="whitespace-pre-line break-words">{getDisplayMessage(message.message)}</div><div className={`mt-0.5 text-[9px] leading-3 ${message.sender_role === 'user' ? 'text-white/70' : 'text-[#87938c]'}`}>{message.id === optimisticMessage?.id ? (isFilipino ? 'Ipinapadala…' : 'Sending…') : message.sender_name}</div></div></div>
                   ))}
                 </div>
                 {selected.chat_status === 'open' ? (
-                  <form onSubmit={sendMessage} className="flex shrink-0 gap-2 border-t border-[#dfe6e1] bg-white p-2.5 sm:p-3"><input value={draft} onChange={(event) => setDraft(event.target.value)} placeholder="Message clinic staff" className="h-11 min-w-0 flex-1 rounded-full border border-[#cfd8d2] px-4 text-sm outline-none focus:border-[#17645c]" /><button type="submit" aria-label="Send message" className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-[#17645c] text-white"><Send className="h-4 w-4" /></button></form>
-                ) : <div className="border-t border-[#dfe6e1] bg-white px-4 py-4 text-center text-xs font-bold text-[#66736f]">This chat has been closed by clinic staff</div>}
+                  <div className="shrink-0 border-t border-[#e7ece9] bg-white px-3 py-1.5 sm:px-4">
+                    <p className="mb-1.5 text-[10px] leading-relaxed text-[#66736f]">
+                      {isFilipino
+                        ? 'Sasagot ang assistant batay sa nailathalang impormasyon ng website lamang. Hindi ito payong medikal; huwag magpadala ng pangalan, detalye ng appointment, o impormasyong pangkalusugan. OpenRouter ang pangunahing provider at Gemini ang fallback.'
+                        : 'The assistant answers from published website information only, not medical advice. Do not send names, appointment details, or health information. OpenRouter is primary; Gemini is the fallback.'}
+                    </p>
+                    <label className="mb-2 flex items-start gap-2 text-[10px] leading-relaxed text-[#43534d]">
+                      <input type="checkbox" checked={aiConsent} onChange={(event) => setAiConsent(event.target.checked)} className="mt-0.5 h-3.5 w-3.5 shrink-0 accent-teal-800" />
+                      <span>{isFilipino
+                        ? 'Nauunawaan ko na ipoproseso ng OpenRouter o Gemini ang aking tanong at hindi ako magbabahagi ng personal o pangkalusugang detalye.'
+                        : 'I understand OpenRouter or Gemini will process my question, and I will not share personal or health details.'}</span>
+                    </label>
+                    {assistantError && <p role="alert" className="mb-1.5 text-[10px] text-rose-800">{assistantError}</p>}
+                    <form onSubmit={askClinicAssistant} className="flex items-center gap-2">
+                      <input value={draft} onChange={(event) => setDraft(event.target.value)} maxLength={1200} placeholder={isFilipino ? 'Magtanong tungkol sa website ng klinika' : 'Ask about the health center website'} aria-label={isFilipino ? 'Tanong para sa website assistant' : 'Question for the website assistant'} className="h-9 min-w-0 flex-1 rounded-full border border-[#d8e0db] bg-[#f7f9f8] px-3.5 text-xs outline-none transition-colors placeholder:text-[#9aa59f] focus:border-[#17645c] focus:bg-white" />
+                      <button type="submit" disabled={!draft.trim() || !aiConsent || assistantLoading} aria-label={isFilipino ? 'Ipadala ang tanong' : 'Send question to website assistant'} className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#17645c] text-white transition-colors hover:bg-[#124f49] disabled:cursor-not-allowed disabled:opacity-50"><Send className="h-3.5 w-3.5" /></button>
+                    </form>
+                  </div>
+                ) : <div className="shrink-0 border-t border-[#e7ece9] bg-white px-4 py-3 text-center text-xs font-semibold text-[#66736f]">{isFilipino ? 'Isinara ng kawani ang chat na ito.' : 'This chat has been closed by clinic staff.'}</div>}
               </div>
             )}
           </div>
         </div>
-        {error && <p role="alert" className="mt-3 text-xs text-rose-800">{error}</p>}
+        {error && <p role="alert" className="shrink-0 border-t border-rose-100 bg-rose-50 px-4 py-2 text-xs text-rose-800">{error}</p>}
         </div>
-        )}
       </div>
     </section>
   );

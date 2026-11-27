@@ -277,7 +277,7 @@ export const AdminPanel: React.FC = () => {
             { id: 'calendar', label: 'Calendar & availability' },
             { id: 'content', label: 'Website content' },
           ].map(({ id, label }) => (
-            <button key={id} type="button" onClick={() => { setActiveTab(id as 'requests' | 'priority' | 'completed' | 'calendar' | 'content'); setSelectedId(''); }} className={`min-h-11 min-w-max flex-1 rounded-sm px-3 py-2.5 text-center text-xs font-bold sm:min-w-0 sm:px-4 sm:text-sm ${activeTab === id ? 'bg-[#0f4d3c] text-white' : 'text-[#66736f] hover:bg-[#f2f7f4] hover:text-[#0f4d3c]'}`}>{label}</button>
+            <button key={id} type="button" onClick={() => { setActiveTab(id as 'requests' | 'priority' | 'completed' | 'calendar' | 'content'); setSelectedId(''); }} className={`min-h-11 min-w-max flex-1 whitespace-nowrap rounded-sm px-3 py-2.5 text-center text-xs font-bold sm:px-4 sm:text-sm ${activeTab === id ? 'bg-[#0f4d3c] text-white' : 'text-[#66736f] hover:bg-[#f2f7f4] hover:text-[#0f4d3c]'}`}>{label}</button>
           ))}
         </nav>
 
