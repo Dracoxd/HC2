@@ -332,6 +332,28 @@ export default async function handler(request: ApiRequest, response: ApiResponse
       return response.status(200).json({ appointmentId, status: 'cancelled' });
     }
 
+    if (action === 'mark_missed') {
+      if (!admin) return response.status(403).json({ error: 'Admin permission is required.' });
+      if (!appointmentId && !referenceCode) return response.status(400).json({ error: 'Appointment is required.' });
+      const target = appointmentId ? 'id' : 'reference_code';
+      const result = await db.execute({
+        sql: `UPDATE appointment_requests
+              SET status = 'missed',
+                  chat_status = CASE WHEN chat_status = 'deleted' THEN 'deleted' ELSE 'closed' END
+              WHERE ${target} = ? AND status = 'confirmed'`,
+        args: [appointmentId || referenceCode],
+      });
+      if (result.rowsAffected === 0) {
+        const existing = await db.execute({
+          sql: `SELECT status FROM appointment_requests WHERE ${target} = ?`,
+          args: [appointmentId || referenceCode],
+        });
+        if (existing.rows.length === 0) return response.status(404).json({ error: 'Appointment not found.' });
+        return response.status(409).json({ error: 'Only accepted appointments can be marked missed.' });
+      }
+      return response.status(200).json({ appointmentId, status: 'missed' });
+    }
+
     if (action === 'upload_announcement_image') {
       if (!admin) return response.status(403).json({ error: 'Admin permission is required.' });
       const contentId = text(body.contentId, 80);

@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { useHealthCenter } from '../context/HealthCenterContext';
 import { AlertCircle, CalendarDays, CheckCircle2, Clock, X } from 'lucide-react';
-import { useAuth } from '@clerk/react';
+import { useAuth, useUser } from '@clerk/react';
 import {
   APPOINTMENT_TIME_SLOTS,
   formatAppointmentTime,
@@ -44,6 +44,7 @@ const priorityCategoryOptions = [
 
 export const OutreachBookingModal: React.FC = () => {
   const { getToken } = useAuth();
+  const { user } = useUser();
   const {
     t,
     language,
@@ -51,6 +52,7 @@ export const OutreachBookingModal: React.FC = () => {
     setBookingModalOpen,
     appointmentRequestAvailability,
     markAppointmentRequestStatus,
+    openMessagesForAppointment,
     selectedProgramForBooking,
     siteContent,
   } = useHealthCenter();
@@ -78,6 +80,7 @@ export const OutreachBookingModal: React.FC = () => {
   const [pendingRequestLoaded, setPendingRequestLoaded] = useState(false);
   const [formStep, setFormStep] = useState<1 | 2>(1);
   const appointmentFormRef = useRef<HTMLFormElement>(null);
+  const prefilled = useRef(false);
   const earliestDate = getEarliestAppointmentDate(now);
   const dateBlocked = slotSettings.some((setting) => setting.date === preferredDate && setting.time === 'all_day' && setting.blocked);
   const isTimeBlocked = (time: string) => {
@@ -153,6 +156,7 @@ export const OutreachBookingModal: React.FC = () => {
       setPrivacyConsent(false);
       setAttendanceConsent(false);
       setFormStep(1);
+      prefilled.current = false;
     }
   }, [bookingModalOpen]);
 
@@ -173,13 +177,44 @@ export const OutreachBookingModal: React.FC = () => {
         const result = await response.json() as {
           slotSettings?: PublicSlotSetting[];
           unavailableSlots?: UnavailableAppointmentSlot[];
-          appointments?: Array<{ reference_code: string; preferred_date: string; preferred_time: string; status: string }>;
+          appointments?: Array<{
+            reference_code: string;
+            preferred_date: string;
+            preferred_time: string;
+            status: string;
+            patient_name?: string;
+            phone?: string;
+            address?: string | null;
+            age?: number | null;
+            zone?: string;
+            service_id?: string;
+            created_at?: string;
+          }>;
           error?: string;
         };
         if (!response.ok || !Array.isArray(result.slotSettings) || !Array.isArray(result.unavailableSlots)) {
           throw new Error(result.error || 'Appointment availability could not be loaded.');
         }
         if (active) {
+          if (!prefilled.current) {
+            const previousAppointment = [...(result.appointments ?? [])]
+              .sort((first, second) => (second.created_at ?? '').localeCompare(first.created_at ?? ''))[0];
+            setPatientName(previousAppointment?.patient_name || user?.fullName || '');
+            setPhone(previousAppointment?.phone || user?.primaryPhoneNumber?.phoneNumber || '');
+            setAddress(previousAppointment?.address || '');
+            const previousAge = previousAppointment?.age == null ? '' : String(previousAppointment.age);
+            setAge(previousAge);
+            setPriorityCategories((current) => Number(previousAge) >= 60
+              ? current.includes('senior_citizen') ? current : [...current, 'senior_citizen']
+              : current.filter((category) => category !== 'senior_citizen'));
+            if (previousAppointment?.zone) setZone(previousAppointment.zone);
+            if (!selectedProgramForBooking
+              && previousAppointment?.service_id
+              && services.some((service) => service.id === previousAppointment.service_id)) {
+              setServiceId(previousAppointment.service_id);
+            }
+            prefilled.current = true;
+          }
           setSlotSettings(result.slotSettings);
           setUnavailableSlots(result.unavailableSlots);
           const activeAppointment = result.appointments?.find((appointment) => ['pending', 'confirmed'].includes(appointment.status.toLowerCase()));
@@ -205,7 +240,7 @@ export const OutreachBookingModal: React.FC = () => {
       active = false;
       window.clearInterval(timer);
     };
-  }, [bookingModalOpen, getToken]);
+  }, [bookingModalOpen, getToken, selectedProgramForBooking, services, user?.fullName, user?.primaryPhoneNumber?.phoneNumber]);
 
   if (!bookingModalOpen) return null;
 
@@ -346,7 +381,7 @@ export const OutreachBookingModal: React.FC = () => {
                 <p className="mt-4 text-sm text-slate-700">{selectedService?.title}</p>
                 <p className="mt-1 text-sm text-slate-600">{preferredDate} · {formatAppointmentTime(preferredTime)} · {zone}</p>
                 <p className="mt-4 text-xs text-slate-500">{isFilipino ? 'Reference number' : 'Request reference'}: <strong className="font-mono text-slate-900">{receipt.referenceCode}</strong></p>
-                <button onClick={handleClose} className="mt-6 px-4 py-2.5 bg-teal-900 text-white text-sm font-bold rounded-md hover:bg-teal-950">{isFilipino ? 'Isara' : 'Done'}</button>
+                <button onClick={() => { openMessagesForAppointment(receipt.referenceCode); handleClose(); }} className="mt-6 px-4 py-2.5 bg-teal-900 text-white text-sm font-bold rounded-md hover:bg-teal-950">{isFilipino ? 'Buksan ang chat' : 'Open appointment chat'}</button>
               </div>
             </div>
           </div>
@@ -410,6 +445,14 @@ export const OutreachBookingModal: React.FC = () => {
                   {services.map((service) => <option key={service.id} value={service.id}>{isFilipino ? service.titleFil : service.title}</option>)}
                 </select>
                 {services.length === 0 && <p role="status" className="mt-2 text-xs text-amber-800">{isFilipino ? 'Walang kasalukuyang nailathalang serbisyo para sa appointment request.' : 'There are no published services available for appointment requests.'}</p>}
+                {selectedService && (isFilipino ? selectedService.requirementsFil : selectedService.requirements).length > 0 && (
+                  <div className="mt-3 border border-[#dce7e1] bg-[#f7faf8] px-3 py-2.5 text-xs text-[#43534d]">
+                    <p className="font-bold">{isFilipino ? 'Mga kailangang dalhin' : 'Requirements to bring'}</p>
+                    <ul className="mt-1 list-disc space-y-0.5 pl-5">
+                      {(isFilipino ? selectedService.requirementsFil : selectedService.requirements).map((requirement) => <li key={requirement}>{requirement}</li>)}
+                    </ul>
+                  </div>
+                )}
               </div>
               <div>
                 <label htmlFor="appointment-name" className="mb-1 block text-sm font-semibold text-slate-800">{t.formFullName} *</label>

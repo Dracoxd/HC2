@@ -4,6 +4,12 @@ import { useAuth, useUser } from '@clerk/react';
 import { useHealthCenter } from '../context/HealthCenterContext';
 import { formatAppointmentTime } from '../appointmentSchedule';
 
+interface AssistantMessage {
+  id: string;
+  role: 'user' | 'assistant';
+  text: string;
+}
+
 interface UserAppointment {
   id: string;
   reference_code: string;
@@ -24,6 +30,57 @@ interface UserMessage {
   created_at: string;
 }
 
+function getClinicInformationAnswer(question: string, siteContent: ReturnType<typeof useHealthCenter>['siteContent'], isFilipino: boolean) {
+  const query = question.toLocaleLowerCase();
+  const phone = siteContent.settings.contactPhone;
+  const email = siteContent.settings.contactEmail;
+
+  if (/contact|phone|call|email|telepono|tawag|ugnay/.test(query)) {
+    const details = [phone, email].filter(Boolean).join(' · ');
+    return details || (isFilipino
+      ? 'Walang nakalistang pampublikong numero o email sa ngayon. Tingnan ang impormasyon ng klinika para sa pinakabagong detalye.'
+      : 'No public phone number or email is currently listed. Check the clinic information page for updates.');
+  }
+
+  if (/address|location|where|saan|lokasyon|address/.test(query)) {
+    return isFilipino ? siteContent.settings.clinicAddressFil : siteContent.settings.clinicAddress;
+  }
+
+  if (/hour|schedule|open|time|oras|iskedyul|bukas/.test(query)) {
+    return [
+      isFilipino ? siteContent.settings.clinicHoursFil : siteContent.settings.clinicHours,
+      isFilipino ? siteContent.settings.doctorHoursFil : siteContent.settings.doctorHours,
+    ].filter(Boolean).join('\n');
+  }
+
+  if (/outreach|program|barangay|outreach|komunidad/.test(query) && siteContent.outreach.length > 0) {
+    return siteContent.outreach.map((item) => `${isFilipino ? item.titleFil : item.title}: ${item.scheduleDate} · ${item.location}`).join('\n');
+  }
+
+  const service = siteContent.services.find((item) => {
+    const title = isFilipino ? item.titleFil : item.title;
+    return title.length > 2 && query.includes(title.toLocaleLowerCase());
+  });
+  if (service) {
+    const description = isFilipino ? service.fullDescFil : service.fullDesc;
+    const schedule = isFilipino ? service.scheduleFil : service.schedule;
+    const requirements = isFilipino ? service.requirementsFil : service.requirements;
+    return [
+      description,
+      schedule && `${isFilipino ? 'Iskedyul' : 'Schedule'}: ${schedule}`,
+      requirements.length > 0 && `${isFilipino ? 'Mga kailangan' : 'Requirements'}: ${requirements.join(', ')}`,
+    ].filter(Boolean).join('\n');
+  }
+
+  if (/service|serbisyo|health|clinic|klinika/.test(query) && siteContent.services.length > 0) {
+    return siteContent.services.map((item) => isFilipino ? item.titleFil : item.title).join(', ');
+  }
+
+  return isFilipino
+    ? 'Makakatulong ako sa pampublikong impormasyon tungkol sa mga serbisyo, oras, lokasyon, outreach, at contact. Para sa payong medikal o agarang tulong, makipag-ugnayan sa health center o emergency services.'
+    : 'I can help with public information about services, hours, location, outreach, and contact details. For medical advice or urgent help, contact the health center or emergency services.';
+}
+
 const getDisplayMessage = (message: string) => {
   const legacyConfirmation = message.match(
     /^Your appointment for (.+) on (\d{4}-\d{2}-\d{2}) at (.+?) has been automatically confirmed\. You can view this schedule in your appointment chat\./,
@@ -37,11 +94,22 @@ const getDisplayMessage = (message: string) => {
 export const UserAppointmentChat: React.FC = () => {
   const { getToken } = useAuth();
   const { user } = useUser();
-  const { messagesOpen, setMessagesOpen, markAppointmentMessagesRead } = useHealthCenter();
+  const {
+    language,
+    siteContent,
+    messagesOpen,
+    setMessagesOpen,
+    messagesReferenceCode,
+    clearMessagesReferenceCode,
+    markAppointmentMessagesRead,
+  } = useHealthCenter();
   const [appointments, setAppointments] = useState<UserAppointment[]>([]);
   const [messages, setMessages] = useState<UserMessage[]>([]);
   const [selectedId, setSelectedId] = useState('');
   const [draft, setDraft] = useState('');
+  const [activeView, setActiveView] = useState<'messages' | 'assistant'>('messages');
+  const [assistantDraft, setAssistantDraft] = useState('');
+  const [assistantMessages, setAssistantMessages] = useState<AssistantMessage[]>([]);
   const [error, setError] = useState('');
   const [lastStatuses, setLastStatuses] = useState<Record<string, string>>({});
 
@@ -83,6 +151,15 @@ export const UserAppointmentChat: React.FC = () => {
   const selected = useMemo(() => appointments.find((appointment) => appointment.id === selectedId), [appointments, selectedId]);
   const selectedMessages = useMemo(() => messages.filter((message) => message.appointment_id === selectedId), [messages, selectedId]);
   const latestSelectedMessageId = selectedMessages.at(-1)?.id;
+  const isFilipino = language === 'fil';
+
+  useEffect(() => {
+    if (!messagesReferenceCode) return;
+    const appointment = appointments.find((item) => item.reference_code === messagesReferenceCode);
+    if (!appointment) return;
+    setSelectedId(appointment.id);
+    clearMessagesReferenceCode();
+  }, [appointments, clearMessagesReferenceCode, messagesReferenceCode]);
 
   useEffect(() => {
     if (!messagesOpen || !selected || !latestSelectedMessageId) return;
@@ -116,6 +193,19 @@ export const UserAppointmentChat: React.FC = () => {
     }
   };
 
+  const askClinicAssistant = (event: FormEvent) => {
+    event.preventDefault();
+    const question = assistantDraft.trim();
+    if (!question) return;
+    const answer = getClinicInformationAnswer(question, siteContent, isFilipino);
+    setAssistantMessages((current) => [
+      ...current,
+      { id: `question-${Date.now()}`, role: 'user', text: question },
+      { id: `answer-${Date.now()}`, role: 'assistant', text: answer },
+    ]);
+    setAssistantDraft('');
+  };
+
   const cancelSelectedAppointment = async () => {
     if (!selected || !['pending', 'confirmed'].includes(selected.status)) return;
     if (!window.confirm('Cancel this appointment request?')) return;
@@ -144,12 +234,36 @@ export const UserAppointmentChat: React.FC = () => {
           <div><div className="text-xs font-bold text-[#17645c]">Your appointments</div><h2 id="messages-title" className="mt-1 text-xl font-bold text-[#17312e]">Messages</h2></div>
           <button type="button" onClick={() => setMessagesOpen(false)} aria-label="Close messages" className="p-2 text-[#66736f] hover:bg-[#f1f4f1]"><X className="h-5 w-5" /></button>
         </header>
+        <nav aria-label="Messages and clinic information" className="flex shrink-0 gap-2 border-b border-[#dfe6e1] bg-white px-4 py-2">
+          <button type="button" onClick={() => setActiveView('messages')} aria-pressed={activeView === 'messages'} className={`min-h-10 px-3 text-xs font-bold ${activeView === 'messages' ? 'bg-[#17645c] text-white' : 'text-[#66736f] hover:bg-[#f1f4f1]'}`}>Messages</button>
+          <button type="button" onClick={() => setActiveView('assistant')} aria-pressed={activeView === 'assistant'} className={`min-h-10 px-3 text-xs font-bold ${activeView === 'assistant' ? 'bg-[#17645c] text-white' : 'text-[#66736f] hover:bg-[#f1f4f1]'}`}>{isFilipino ? 'Impormasyon ng klinika' : 'Clinic information'}</button>
+        </nav>
+        {activeView === 'assistant' ? (
+          <section className="flex min-h-0 flex-1 flex-col bg-[#f8faf7]">
+            <div className="flex-1 space-y-3 overflow-y-auto px-4 py-4" aria-live="polite">
+              <p className="border border-[#dfe6e1] bg-white p-3 text-sm text-[#66736f]">
+                {isFilipino
+                  ? 'Lokal na gabay para sa pampublikong impormasyon lamang. Huwag maglagay ng personal o pangkalusugang detalye.'
+                  : 'Local help for public clinic information only. Do not enter personal or health details.'}
+              </p>
+              {assistantMessages.map((message) => (
+                <div key={message.id} className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+                  <p className={`max-w-[85%] whitespace-pre-line rounded-xl px-4 py-3 text-sm ${message.role === 'user' ? 'bg-[#17645c] text-white' : 'bg-white text-[#17312e] shadow-sm'}`}>{message.text}</p>
+                </div>
+              ))}
+            </div>
+            <form onSubmit={askClinicAssistant} className="flex shrink-0 gap-2 border-t border-[#dfe6e1] bg-white p-3">
+              <input value={assistantDraft} onChange={(event) => setAssistantDraft(event.target.value)} maxLength={500} placeholder={isFilipino ? 'Magtanong tungkol sa klinika' : 'Ask about the clinic'} className="h-11 min-w-0 flex-1 rounded-full border border-[#cfd8d2] px-4 text-sm outline-none focus:border-[#17645c]" />
+              <button type="submit" disabled={!assistantDraft.trim()} aria-label={isFilipino ? 'Ipadala ang tanong' : 'Ask question'} className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-[#17645c] text-white disabled:opacity-50"><Send className="h-4 w-4" /></button>
+            </form>
+          </section>
+        ) : (
         <div className="min-h-0 flex-1 overflow-y-auto">
         <div className="overflow-hidden bg-white lg:grid lg:grid-cols-[300px_1fr]">
           <aside className={`${selected ? 'hidden lg:block' : 'block'} border-b border-[#dfe6e1] lg:border-b-0 lg:border-r`}>
             {appointments.map((appointment) => (
               <button key={appointment.id} type="button" onClick={() => setSelectedId(appointment.id)} className={`w-full border-b border-[#edf1ee] px-4 py-4 text-left hover:bg-[#f4f7f4] ${selectedId === appointment.id ? 'bg-[#edf3ef]' : ''}`}>
-                <div className="flex items-start justify-between gap-3"><div><div className="text-sm font-bold text-[#17312e]">{appointment.service_name}</div><div className="mt-1 text-xs text-[#66736f]">{appointment.reference_code}</div></div><span className={`px-2 py-1 text-[10px] font-bold uppercase ${appointment.status === 'confirmed' ? 'bg-emerald-100 text-emerald-800' : appointment.status === 'completed' ? 'bg-sky-100 text-sky-800' : appointment.status === 'cancelled' || appointment.status === 'rejected' ? 'bg-rose-100 text-rose-800' : 'bg-amber-100 text-amber-800'}`}>{appointment.status}</span></div>
+                <div className="flex items-start justify-between gap-3"><div><div className="text-sm font-bold text-[#17312e]">{appointment.service_name}</div><div className="mt-1 text-xs text-[#66736f]">{appointment.reference_code}</div></div><span className={`px-2 py-1 text-[10px] font-bold uppercase ${appointment.status === 'confirmed' ? 'bg-emerald-100 text-emerald-800' : appointment.status === 'completed' ? 'bg-sky-100 text-sky-800' : ['cancelled', 'rejected', 'missed'].includes(appointment.status) ? 'bg-rose-100 text-rose-800' : 'bg-amber-100 text-amber-800'}`}>{appointment.status}</span></div>
                 <div className="mt-2 text-xs text-[#66736f]">{appointment.preferred_date} · {formatAppointmentTime(appointment.preferred_time)}</div>
               </button>
             ))}
@@ -175,6 +289,7 @@ export const UserAppointmentChat: React.FC = () => {
         </div>
         {error && <p role="alert" className="mt-3 text-xs text-rose-800">{error}</p>}
         </div>
+        )}
       </div>
     </section>
   );

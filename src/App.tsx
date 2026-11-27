@@ -51,6 +51,8 @@ const AppContent: React.FC = () => {
         ? `Appointment ${detail.referenceCode} approved.`
         : detail.status === 'completed'
           ? `Appointment ${detail.referenceCode} marked completed and removed from the public schedule.`
+          : detail.status === 'missed'
+            ? `Appointment ${detail.referenceCode} marked missed.`
         : detail.status === 'rejected' || detail.status === 'cancelled'
           ? `Appointment ${detail.referenceCode} ${detail.status}.`
           : `Appointment ${detail.referenceCode} updated.`);
