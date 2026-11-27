@@ -74,6 +74,7 @@ const CustomSignUpForm: React.FC = () => {
   const passwordsMatch = password === confirmPassword;
   const usernameFormatError = username && !usernamePattern.test(username) ? usernameHint : undefined;
   const usernameError = errors.fields.username?.message || usernameFormatError;
+  const passwordError = errors.fields.password?.message;
   const confirmPasswordError = confirmPassword && !passwordsMatch ? 'Passwords do not match.' : undefined;
 
   const handleSignUp = async (event: FormEvent<HTMLFormElement>) => {
@@ -177,10 +178,10 @@ const CustomSignUpForm: React.FC = () => {
         </div>
         <p id="signup-contact-number-hint" className="mt-1 text-xs text-zinc-600">Enter 10 digits starting with 9.</p>
       </div>
-      <AuthField id="password" label="Password" type="password" value={password} onChange={setPassword} autoComplete="new-password" visible={passwordVisible} onToggleVisibility={() => setPasswordVisible((visible) => !visible)} />
+      <AuthField id="password" label="Password" type="password" value={password} onChange={setPassword} error={passwordError} autoComplete="new-password" visible={passwordVisible} onToggleVisibility={() => setPasswordVisible((visible) => !visible)} />
       <AuthField id="confirm-password" label="Confirm password" type="password" value={confirmPassword} onChange={setConfirmPassword} autoComplete="new-password" error={confirmPasswordError} visible={confirmPasswordVisible} onToggleVisibility={() => setConfirmPasswordVisible((visible) => !visible)} />
       {confirmPassword && passwordsMatch && <p role="status" className="text-sm text-emerald-700">Passwords match.</p>}
-      {requestError && <p role="alert" className="text-sm text-rose-600">{requestError}</p>}
+      {requestError && requestError !== passwordError && <p role="alert" className="text-sm text-rose-600">{requestError}</p>}
       <div id="clerk-captcha" />
       <button type="submit" disabled={fetchStatus === 'fetching' || !passwordsMatch || !confirmPassword} className="w-full rounded-md bg-[#8b00ff] px-4 py-2.5 text-sm font-semibold text-white hover:bg-[#7600db] disabled:cursor-not-allowed disabled:opacity-60">
         {fetchStatus === 'fetching' ? 'Creating account...' : 'Continue'}
