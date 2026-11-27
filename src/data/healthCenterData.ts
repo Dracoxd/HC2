@@ -19,7 +19,7 @@ export const DEFAULT_CLINIC_PUBLIC_SETTINGS: ClinicPublicSettings = {
   dentalHoursFil: 'Lunes-Martes: Quintin De Borja; Miyerkules: Dental Outreach; Huwebes-Biyernes: Delfin Salonga',
   clinicAddress: 'G. de Borja Street, Barangay Aguho, Pateros, Metro Manila 1620',
   clinicAddressFil: 'G. de Borja Street, Barangay Aguho, Pateros, Metro Manila 1620',
-  contactPhone: 'No hotline available',
+  contactPhone: '+63 2-642 4783',
   contactEmail: '',
   emergencyPhone: '',
   emergencyPhoneFil: '',
