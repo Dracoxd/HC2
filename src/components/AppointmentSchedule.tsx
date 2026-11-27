@@ -120,8 +120,8 @@ export const AppointmentSchedule: React.FC = () => {
         {error && <p role="alert" className="border-y border-[#dce7e1] py-5 text-sm text-rose-800">{error}</p>}
 
         {!loading && !error && (
-          <div className="grid items-stretch gap-6 lg:grid-cols-2">
-            <section aria-labelledby="priority-schedule-title" className="flex min-h-[300px] flex-col overflow-hidden rounded-xl border-2 border-amber-400 bg-gradient-to-br from-amber-50 via-white to-orange-50 shadow-lg shadow-amber-100/70">
+          <div className="grid items-start gap-6 lg:grid-cols-2">
+            <section aria-labelledby="priority-schedule-title" className="overflow-hidden rounded-xl border-2 border-amber-400 bg-gradient-to-br from-amber-50 via-white to-orange-50 shadow-lg shadow-amber-100/70">
               <header className="border-b border-amber-200 bg-amber-100/80 px-6 py-6 sm:px-7">
                 <div className="flex items-center gap-3">
                   <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-amber-500 text-white shadow-md shadow-amber-200">
@@ -137,7 +137,7 @@ export const AppointmentSchedule: React.FC = () => {
                   </div>
                 </div>
               </header>
-              <div className="grid flex-1 content-start gap-4 p-5 sm:p-6">
+              <div className="grid content-start gap-4 p-5 sm:p-6">
                 {upcomingPrioritySlots.map((slot) => (
                   <article key={`${slot.date}-${slot.time}`} className="rounded-lg border border-amber-200 bg-white p-5 shadow-sm">
                     <p className="text-[11px] font-bold uppercase tracking-wide text-amber-800">{dateLabel(slot.date)}</p>
@@ -178,7 +178,7 @@ export const AppointmentSchedule: React.FC = () => {
               </div>
             </section>
 
-            <section aria-labelledby="regular-schedule-title" className="flex min-h-[300px] flex-col overflow-hidden rounded-xl border-2 border-[#dce7e1] bg-white shadow-sm">
+            <section aria-labelledby="regular-schedule-title" className="overflow-hidden rounded-xl border-2 border-[#dce7e1] bg-white shadow-sm">
               <header className="border-b border-[#dce7e1] bg-[#f2f7f4] px-6 py-6 sm:px-7">
                 <div className="flex items-center gap-3">
                   <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-[#17645c] text-white">
@@ -194,7 +194,7 @@ export const AppointmentSchedule: React.FC = () => {
                   </div>
                 </div>
               </header>
-              <div className="grid flex-1 content-start gap-4 p-5 sm:p-6">
+              <div className="grid content-start gap-4 p-5 sm:p-6">
                 {regularSlots.map((slot) => (
                   <article key={`${slot.date}-${slot.time}`} className="rounded-lg border border-[#dce7e1] bg-white p-5">
                     <p className="text-[11px] font-bold uppercase tracking-wide text-[#2c7a5f]">{dateLabel(slot.date)}</p>

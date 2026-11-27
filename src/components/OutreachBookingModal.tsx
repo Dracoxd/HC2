@@ -7,8 +7,10 @@ import {
   formatAppointmentTime,
   getAppointmentTimePeriod,
   getEarliestAppointmentDate,
+  getLatestAppointmentDate,
   isAppointmentTimeAvailable,
 } from '../appointmentSchedule';
+import { formatPhilippinePhoneNumber, isValidPhilippinePhoneNumber, normalizePhilippinePhoneNumber } from '../philippinePhone';
 
 interface AppointmentReceipt {
   referenceCode: string;
@@ -61,8 +63,12 @@ export const OutreachBookingModal: React.FC = () => {
   const [patientName, setPatientName] = useState('');
   const [phone, setPhone] = useState('');
   const [age, setAge] = useState('');
-  const [address, setAddress] = useState('');
+  const [houseApartmentNumber, setHouseApartmentNumber] = useState('');
+  const [streetName, setStreetName] = useState('');
   const [chiefComplaint, setChiefComplaint] = useState('');
+  const [guardianName, setGuardianName] = useState('');
+  const [guardianRelationship, setGuardianRelationship] = useState('');
+  const [guardianConsent, setGuardianConsent] = useState(false);
   const [priorityCategories, setPriorityCategories] = useState<string[]>([]);
   const [zone, setZone] = useState('1. Aguho');
   const [now, setNow] = useState(() => new Date());
@@ -70,6 +76,7 @@ export const OutreachBookingModal: React.FC = () => {
   const [preferredTime, setPreferredTime] = useState('09:00');
   const [privacyConsent, setPrivacyConsent] = useState(false);
   const [attendanceConsent, setAttendanceConsent] = useState(false);
+  const [arrivalConsent, setArrivalConsent] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
   const [availabilityError, setAvailabilityError] = useState('');
@@ -82,6 +89,18 @@ export const OutreachBookingModal: React.FC = () => {
   const appointmentFormRef = useRef<HTMLFormElement>(null);
   const prefilled = useRef(false);
   const earliestDate = getEarliestAppointmentDate(now);
+  const latestDate = getLatestAppointmentDate(now);
+  const isAnimalBiteService = services.find((service) => service.id === serviceId)?.category === 'animal_bite';
+  const metadata = user?.unsafeMetadata;
+  const profileName = [
+    user?.firstName,
+    typeof metadata?.middleName === 'string' ? metadata.middleName : '',
+    user?.lastName,
+    typeof metadata?.suffix === 'string' ? metadata.suffix : '',
+  ].filter(Boolean).join(' ');
+  const profilePhone = typeof metadata?.contactNumber === 'string'
+    ? metadata.contactNumber
+    : user?.primaryPhoneNumber?.phoneNumber || '';
   const dateBlocked = slotSettings.some((setting) => setting.date === preferredDate && setting.time === 'all_day' && setting.blocked);
   const isTimeBlocked = (time: string) => {
     const period = getAppointmentTimePeriod(time);
@@ -92,7 +111,7 @@ export const OutreachBookingModal: React.FC = () => {
   const isTimeTaken = (time: string) => unavailableSlots.some((slot) => (
     slot.date === preferredDate
     && slot.time === time
-    && (priorityCategories.length > 0
+    && (priorityCategories.length > 0 || isAnimalBiteService
       ? slot.hasPriorityBooking
       : slot.hasRegularBooking || slot.hasPriorityBooking)
   ));
@@ -104,8 +123,10 @@ export const OutreachBookingModal: React.FC = () => {
   }, [bookingModalOpen]);
 
   useEffect(() => {
-    setPreferredDate((current) => current < earliestDate ? earliestDate : current);
-  }, [earliestDate]);
+    setPreferredDate((current) => current < earliestDate
+      ? earliestDate
+      : current > latestDate ? latestDate : current);
+  }, [earliestDate, latestDate]);
 
   useEffect(() => {
     if (!dateBlocked
@@ -136,12 +157,12 @@ export const OutreachBookingModal: React.FC = () => {
   useEffect(() => {
     const isMaternityService = services.find((service) => service.id === serviceId)?.category === 'maternity';
     setPriorityCategories((current) => {
-      if (isMaternityService) {
+      if (isMaternityService && Number(age) < 60) {
         return current.includes('pregnant_lactating') ? current : [...current, 'pregnant_lactating'];
       }
       return current.filter((category) => category !== 'pregnant_lactating');
     });
-  }, [serviceId, services]);
+  }, [age, serviceId, services]);
 
   useEffect(() => {
     if (!bookingModalOpen) {
@@ -150,11 +171,16 @@ export const OutreachBookingModal: React.FC = () => {
       setPatientName('');
       setPhone('');
       setAge('');
-      setAddress('');
+      setHouseApartmentNumber('');
+      setStreetName('');
       setChiefComplaint('');
+      setGuardianName('');
+      setGuardianRelationship('');
+      setGuardianConsent(false);
       setPriorityCategories([]);
       setPrivacyConsent(false);
       setAttendanceConsent(false);
+      setArrivalConsent(false);
       setFormStep(1);
       prefilled.current = false;
     }
@@ -188,6 +214,8 @@ export const OutreachBookingModal: React.FC = () => {
             age?: number | null;
             zone?: string;
             service_id?: string;
+            guardian_name?: string | null;
+            guardian_relationship?: string | null;
             created_at?: string;
           }>;
           error?: string;
@@ -199,15 +227,21 @@ export const OutreachBookingModal: React.FC = () => {
           if (!prefilled.current) {
             const previousAppointment = [...(result.appointments ?? [])]
               .sort((first, second) => (second.created_at ?? '').localeCompare(first.created_at ?? ''))[0];
-            setPatientName(previousAppointment?.patient_name || user?.fullName || '');
-            setPhone(previousAppointment?.phone || user?.primaryPhoneNumber?.phoneNumber || '');
-            setAddress(previousAppointment?.address || '');
+            setPatientName(previousAppointment?.patient_name || profileName);
+            setPhone(normalizePhilippinePhoneNumber(previousAppointment?.phone || profilePhone));
+            const priorAddress = previousAppointment?.address || '';
+            const addressSeparator = priorAddress.indexOf(',');
+            setHouseApartmentNumber(addressSeparator < 0 ? priorAddress : priorAddress.slice(0, addressSeparator).trim());
+            setStreetName(addressSeparator < 0 ? '' : priorAddress.slice(addressSeparator + 1).trim());
             const previousAge = previousAppointment?.age == null ? '' : String(previousAppointment.age);
             setAge(previousAge);
             setPriorityCategories((current) => Number(previousAge) >= 60
               ? current.includes('senior_citizen') ? current : [...current, 'senior_citizen']
               : current.filter((category) => category !== 'senior_citizen'));
             if (previousAppointment?.zone) setZone(previousAppointment.zone);
+            setGuardianName(previousAppointment?.guardian_name || '');
+            setGuardianRelationship(previousAppointment?.guardian_relationship || '');
+            setGuardianConsent(false);
             if (!selectedProgramForBooking
               && previousAppointment?.service_id
               && services.some((service) => service.id === previousAppointment.service_id)) {
@@ -240,13 +274,14 @@ export const OutreachBookingModal: React.FC = () => {
       active = false;
       window.clearInterval(timer);
     };
-  }, [bookingModalOpen, getToken, selectedProgramForBooking, services, user?.fullName, user?.primaryPhoneNumber?.phoneNumber]);
+  }, [bookingModalOpen, getToken, profileName, profilePhone, selectedProgramForBooking, services]);
 
   if (!bookingModalOpen) return null;
 
   const isFilipino = language === 'fil';
   const canSubmitAppointment = appointmentRequestAvailability === 'available';
   const selectedService = services.find((service) => service.id === serviceId);
+  const isMinor = age !== '' && Number(age) <= 17;
   const timeBlocked = isTimeBlocked(preferredTime);
   const timeTaken = isTimeTaken(preferredTime);
   const slotUnavailable = dateBlocked
@@ -257,8 +292,28 @@ export const OutreachBookingModal: React.FC = () => {
   const handleClose = () => setBookingModalOpen(false);
 
   const handleContinueToSchedule = () => {
+    if (!isValidPhilippinePhoneNumber(phone)) {
+      setError(isFilipino
+        ? 'Maglagay ng wastong Philippine mobile number na may 10 digit pagkatapos ng +63.'
+        : 'Enter a valid Philippine mobile number with 10 digits after +63.');
+      return;
+    }
+    if (age === '' || !/^\d{1,3}$/.test(age) || Number(age) > 110) {
+      setError(isFilipino ? 'Maglagay ng edad mula 0 hanggang 110.' : 'Enter an age from 0 to 110.');
+      return;
+    }
     if (!attendanceConsent) {
       setError(isFilipino ? 'Lagyan ng tsek ang mahalagang paalala bago magpatuloy.' : 'Check the important reminder before continuing.');
+      return;
+    }
+    if (!arrivalConsent) {
+      setError(isFilipino ? 'Kumpirmahing darating ka 30 minuto bago ang appointment.' : 'Confirm that you will arrive 30 minutes before the appointment.');
+      return;
+    }
+    if (isMinor && (!guardianName.trim() || !guardianRelationship || !guardianConsent)) {
+      setError(isFilipino
+        ? 'Kailangan ang detalye at pagdalo ng magulang o guardian para sa pasyenteng 17 taong gulang pababa.'
+        : 'Patients aged 17 and younger need a parent or guardian’s details and attendance confirmation.');
       return;
     }
     if (appointmentFormRef.current?.reportValidity()) {
@@ -283,8 +338,14 @@ export const OutreachBookingModal: React.FC = () => {
       setError(isFilipino ? 'Hindi available ang appointment request sa ngayon.' : 'Appointment request availability is still being checked.');
       return;
     }
-    if (phone.replace(/\D/g, '').length < 7) {
-      setError(isFilipino ? 'Maglagay ng wastong contact number na may hindi bababa sa 7 digit.' : 'Enter a valid contact number with at least 7 digits.');
+    if (!isValidPhilippinePhoneNumber(phone)) {
+      setError(isFilipino
+        ? 'Maglagay ng wastong Philippine mobile number na may 10 digit pagkatapos ng +63.'
+        : 'Enter a valid Philippine mobile number with 10 digits after +63.');
+      return;
+    }
+    if (age === '' || !/^\d{1,3}$/.test(age) || Number(age) > 110) {
+      setError(isFilipino ? 'Maglagay ng edad mula 0 hanggang 110.' : 'Enter an age from 0 to 110.');
       return;
     }
     if (slotUnavailable) {
@@ -301,10 +362,14 @@ export const OutreachBookingModal: React.FC = () => {
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
         body: JSON.stringify({
           patientName,
-          phone,
+          phone: formatPhilippinePhoneNumber(phone),
           age: Number(age),
-          address,
+          houseApartmentNumber,
+          streetName,
           chiefComplaint,
+          guardianName,
+          guardianRelationship,
+          guardianConsent,
           priorityCategories,
           zone,
           serviceId,
@@ -312,6 +377,7 @@ export const OutreachBookingModal: React.FC = () => {
           preferredTime,
           privacyConsent,
           attendanceConsent,
+          arrivalConsent,
         }),
       });
       const responseBody = await response.text();
@@ -348,6 +414,7 @@ export const OutreachBookingModal: React.FC = () => {
       });
       markAppointmentRequestStatus(result.status);
       setReceipt(result);
+      openMessagesForAppointment(result.referenceCode);
     } catch (submitError) {
       setError(submitError instanceof Error ? submitError.message : 'Could not submit your appointment request.');
     } finally {
@@ -460,11 +527,33 @@ export const OutreachBookingModal: React.FC = () => {
               </div>
               <div>
                 <label htmlFor="appointment-phone" className="mb-1 block text-sm font-semibold text-slate-800">{t.formPhone} *</label>
-                <input id="appointment-phone" required type="tel" inputMode="tel" autoComplete="tel" minLength={7} maxLength={32} value={phone} onChange={(event) => setPhone(event.target.value)} placeholder="09XX XXX XXXX" className="min-h-12 w-full rounded-md border border-slate-300 px-3.5 py-2.5 text-base focus:outline-none focus:ring-2 focus:ring-teal-700" />
+                <div className="flex">
+                  <span className="inline-flex min-h-12 items-center rounded-l-md border border-r-0 border-slate-300 bg-slate-50 px-3.5 text-base text-slate-700">+63</span>
+                  <input
+                    id="appointment-phone"
+                    required
+                    type="tel"
+                    inputMode="numeric"
+                    autoComplete="tel-national"
+                    minLength={10}
+                    maxLength={16}
+                    pattern="9[0-9]{9}"
+                    value={phone}
+                    onChange={(event) => setPhone(normalizePhilippinePhoneNumber(event.target.value))}
+                    placeholder="9XX XXX XXXX"
+                    aria-describedby="appointment-phone-hint"
+                    className="min-h-12 w-full rounded-r-md border border-slate-300 px-3.5 py-2.5 text-base focus:outline-none focus:ring-2 focus:ring-teal-700"
+                  />
+                </div>
+                <p id="appointment-phone-hint" className="mt-1 text-xs text-slate-600">{isFilipino ? 'Maglagay ng 10 digit na nagsisimula sa 9.' : 'Enter 10 digits starting with 9.'}</p>
               </div>
               <div>
-                <label htmlFor="appointment-address" className="mb-1 block text-sm font-semibold text-slate-800">{isFilipino ? 'Tirahan' : 'Address'} *</label>
-                <input id="appointment-address" required minLength={5} maxLength={250} autoComplete="street-address" value={address} onChange={(event) => setAddress(event.target.value)} placeholder={isFilipino ? 'House number, street, at subdivision' : 'House number, street, and subdivision'} className="min-h-12 w-full rounded-md border border-slate-300 px-3.5 py-2.5 text-base focus:outline-none focus:ring-2 focus:ring-teal-700" />
+                <label htmlFor="appointment-house-number" className="mb-1 block text-sm font-semibold text-slate-800">{isFilipino ? 'House / apartment number' : 'House / apartment number'} *</label>
+                <input id="appointment-house-number" required maxLength={100} autoComplete="address-line1" value={houseApartmentNumber} onChange={(event) => setHouseApartmentNumber(event.target.value)} className="min-h-12 w-full rounded-md border border-slate-300 px-3.5 py-2.5 text-base focus:outline-none focus:ring-2 focus:ring-teal-700" />
+              </div>
+              <div>
+                <label htmlFor="appointment-street-name" className="mb-1 block text-sm font-semibold text-slate-800">{isFilipino ? 'Street name' : 'Street name'} *</label>
+                <input id="appointment-street-name" required minLength={2} maxLength={150} autoComplete="address-line2" value={streetName} onChange={(event) => setStreetName(event.target.value)} className="min-h-12 w-full rounded-md border border-slate-300 px-3.5 py-2.5 text-base focus:outline-none focus:ring-2 focus:ring-teal-700" />
               </div>
               <div>
                 <label htmlFor="appointment-zone" className="mb-1 block text-sm font-semibold text-slate-800">{t.formZone} *</label>
@@ -479,7 +568,7 @@ export const OutreachBookingModal: React.FC = () => {
                   required
                   type="number"
                   min={0}
-                  max={120}
+                  max={110}
                   step={1}
                   inputMode="numeric"
                   value={age}
@@ -488,7 +577,7 @@ export const OutreachBookingModal: React.FC = () => {
                     const qualifiesAsSenior = nextAge !== '' && Number(nextAge) >= 60;
                     setAge(nextAge);
                     setPriorityCategories((current) => qualifiesAsSenior
-                      ? current.includes('senior_citizen') ? current : [...current, 'senior_citizen']
+                      ? [...current.filter((category) => category !== 'pregnant_lactating'), ...(current.includes('senior_citizen') ? [] : ['senior_citizen'])]
                       : current.filter((category) => category !== 'senior_citizen'));
                   }}
                   className="min-h-12 w-full rounded-md border border-slate-300 px-3.5 py-2.5 text-base focus:outline-none focus:ring-2 focus:ring-teal-700"
@@ -496,13 +585,19 @@ export const OutreachBookingModal: React.FC = () => {
               </div>
               <fieldset className="sm:col-span-2 rounded-md border border-slate-300 p-3">
                 <legend className="px-1 text-sm font-semibold text-slate-800">{isFilipino ? 'Priority category (opsyonal; piliin lahat ng naaangkop)' : 'Priority category (optional; select all that apply)'}</legend>
+                {isAnimalBiteService && <p className="mb-2 rounded-md border border-orange-200 bg-orange-50 p-3 text-sm font-medium text-orange-900">
+                  {isFilipino
+                    ? 'Awtomatikong priority appointment ang Animal Bite. Makipag-ugnayan kaagad sa klinika para sa pagsusuri.'
+                    : 'Animal Bite requests are automatically prioritized. Contact the clinic promptly for an assessment.'}
+                </p>}
                 <div className="grid gap-2 sm:grid-cols-3">
                   {priorityCategoryOptions.map(({ value, label }) => (
                     <label key={value} className="flex min-h-11 items-center gap-2 text-sm text-slate-700">
                       <input
                         type="checkbox"
                         checked={value === 'senior_citizen' ? Number(age) >= 60 : priorityCategories.includes(value)}
-                        disabled={value === 'senior_citizen' && (!age || Number(age) < 60)}
+                        disabled={(value === 'senior_citizen' && (!age || Number(age) < 60))
+                          || (value === 'pregnant_lactating' && Number(age) >= 60)}
                         onChange={(event) => {
                           if (value === 'senior_citizen') return;
                           setPriorityCategories((current) => event.target.checked
@@ -516,6 +611,30 @@ export const OutreachBookingModal: React.FC = () => {
                   ))}
                 </div>
               </fieldset>
+              {isMinor && (
+                <fieldset className="sm:col-span-2 rounded-md border border-amber-300 bg-amber-50 p-3">
+                  <legend className="px-1 text-sm font-semibold text-amber-950">{isFilipino ? 'Impormasyon ng magulang o guardian' : 'Parent or guardian details'}</legend>
+                  <div className="grid gap-3 sm:grid-cols-2">
+                    <div>
+                      <label htmlFor="guardian-name" className="mb-1 block text-sm font-semibold text-slate-800">{isFilipino ? 'Pangalan ng guardian' : 'Guardian name'} *</label>
+                      <input id="guardian-name" required minLength={2} maxLength={120} value={guardianName} onChange={(event) => setGuardianName(event.target.value)} className="min-h-12 w-full rounded-md border border-slate-300 px-3.5 py-2.5 text-base focus:outline-none focus:ring-2 focus:ring-teal-700" />
+                    </div>
+                    <div>
+                      <label htmlFor="guardian-relationship" className="mb-1 block text-sm font-semibold text-slate-800">{isFilipino ? 'Relasyon sa pasyente' : 'Relationship to patient'} *</label>
+                      <select id="guardian-relationship" required value={guardianRelationship} onChange={(event) => setGuardianRelationship(event.target.value)} className="min-h-12 w-full rounded-md border border-slate-300 bg-white px-3.5 py-2.5 text-base focus:outline-none focus:ring-2 focus:ring-teal-700">
+                        <option value="" disabled>{isFilipino ? 'Pumili ng relasyon' : 'Choose relationship'}</option>
+                        <option value="Parent">Parent</option>
+                        <option value="Legal guardian">Legal guardian</option>
+                        <option value="Other guardian">Other guardian</option>
+                      </select>
+                    </div>
+                    <label className="flex items-start gap-3 text-sm leading-relaxed text-amber-950 sm:col-span-2">
+                      <input type="checkbox" required checked={guardianConsent} onChange={(event) => setGuardianConsent(event.target.checked)} className="mt-0.5 h-5 w-5 shrink-0 accent-teal-800" />
+                      <span>{isFilipino ? 'Kinukumpirma kong sasamahan ng nakalistang magulang o guardian ang pasyente.' : 'I confirm the listed parent or guardian will accompany the patient.'}</span>
+                    </label>
+                  </div>
+                </fieldset>
+              )}
               <div className="sm:col-span-2">
                 <label htmlFor="appointment-chief-complaint" className="mb-1 block text-sm font-semibold text-slate-800">{isFilipino ? 'Pangunahing reklamo o dahilan ng pagbisita' : 'Health Concern:'} *</label>
                 <textarea id="appointment-chief-complaint" required minLength={2} maxLength={2000} rows={4} value={chiefComplaint} onChange={(event) => setChiefComplaint(event.target.value)} placeholder={isFilipino ? 'Ilarawan nang maikli ang iyong nararamdaman o serbisyong kailangan.' : 'Briefly describe your concern or the service you need.'} className="w-full resize-y rounded-md border border-slate-300 px-3.5 py-3 text-base focus:outline-none focus:ring-2 focus:ring-teal-700" />
@@ -527,14 +646,25 @@ export const OutreachBookingModal: React.FC = () => {
                 </label>
               </div>
               <div className="sm:col-span-2">
-                <button type="button" disabled={!attendanceConsent} onClick={handleContinueToSchedule} className="mt-1 min-h-12 w-full rounded-sm bg-[#0f4d3c] px-4 py-3 text-base font-bold text-white hover:bg-[#2c7a5f] disabled:cursor-not-allowed disabled:opacity-60">
+                <label className="flex items-start gap-3 border border-slate-200 p-3 text-sm leading-relaxed text-slate-700">
+                  <input type="checkbox" required checked={arrivalConsent} onChange={(event) => setArrivalConsent(event.target.checked)} className="mt-0.5 h-5 w-5 shrink-0 accent-teal-800" />
+                  <span>{isFilipino ? 'Nauunawaan kong kailangan kong dumating 30 minuto bago ang appointment.' : 'I understand that I must arrive 30 minutes before my appointment.'}</span>
+                </label>
+              </div>
+              <div className="sm:col-span-2">
+                <button type="button" disabled={!attendanceConsent || !arrivalConsent || (isMinor && (!guardianName.trim() || !guardianRelationship || !guardianConsent))} onClick={handleContinueToSchedule} className="mt-1 min-h-12 w-full rounded-sm bg-[#0f4d3c] px-4 py-3 text-base font-bold text-white hover:bg-[#2c7a5f] disabled:cursor-not-allowed disabled:opacity-60">
                   {isFilipino ? 'Magpatuloy sa schedule' : 'Continue to schedule'}
                 </button>
               </div>
             </div> : <div className="grid gap-3 sm:grid-cols-2 sm:gap-4">
+              <p className="sm:col-span-2 text-sm text-slate-600">
+                {isFilipino
+                  ? `Pumili ng schedule mula ${earliestDate} hanggang ${latestDate} (rolling 30-araw na window).`
+                  : `Choose a schedule from ${earliestDate} through ${latestDate} (rolling 30-day window).`}
+              </p>
               <div>
                 <label htmlFor="appointment-date" className="mb-1 block text-sm font-semibold text-slate-800">{t.formDate} *</label>
-                <input id="appointment-date" required type="date" min={earliestDate} value={preferredDate} onChange={(event) => setPreferredDate(event.target.value)} className="min-h-12 w-full rounded-md border border-slate-300 px-3 py-2.5 text-base focus:outline-none focus:ring-2 focus:ring-teal-700" />
+                <input id="appointment-date" required type="date" min={earliestDate} max={latestDate} value={preferredDate} onChange={(event) => setPreferredDate(event.target.value)} className="min-h-12 w-full rounded-md border border-slate-300 px-3 py-2.5 text-base focus:outline-none focus:ring-2 focus:ring-teal-700" />
               </div>
               <div>
                 <label htmlFor="appointment-time" className="mb-1 block text-sm font-semibold text-slate-800">{t.formTimeSlot} *</label>
@@ -566,7 +696,7 @@ export const OutreachBookingModal: React.FC = () => {
                 <button type="button" onClick={() => { setError(''); setFormStep(1); }} className="min-h-11 flex-1 rounded-md border border-slate-300 px-4 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-100 sm:flex-none">{isFilipino ? 'Bumalik' : 'Back'}</button>
                 <button type="button" onClick={handleClose} className="min-h-11 flex-1 rounded-md px-4 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-100 sm:flex-none">{isFilipino ? 'Kanselahin' : 'Cancel'}</button>
               </div>
-              <button type="submit" disabled={submitting || slotUnavailable || !canSubmitAppointment || !selectedService || !privacyConsent || !attendanceConsent} className="inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-sm bg-[#0f4d3c] px-5 py-2.5 text-base font-bold text-white hover:bg-[#2c7a5f] disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto"><CalendarDays className="h-4 w-4" />{submitting ? (isFilipino ? 'Ipinapadala...' : 'Sending...') : (isFilipino ? 'Ipadala ang request' : 'Send request')}</button>
+              <button type="submit" disabled={submitting || slotUnavailable || !canSubmitAppointment || !selectedService || !privacyConsent || !attendanceConsent || !arrivalConsent} className="inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-sm bg-[#0f4d3c] px-5 py-2.5 text-base font-bold text-white hover:bg-[#2c7a5f] disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto"><CalendarDays className="h-4 w-4" />{submitting ? (isFilipino ? 'Ipinapadala...' : 'Sending...') : (isFilipino ? 'Ipadala ang request' : 'Send request')}</button>
             </div>}
           </form>
         )}

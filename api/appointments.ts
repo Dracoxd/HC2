@@ -9,6 +9,7 @@ import {
   formatAppointmentTime,
   getAppointmentTimePeriod,
   getEarliestAppointmentDate,
+  getLatestAppointmentDate,
   isAppointmentTimeAvailable,
 } from '../src/appointmentSchedule.js';
 
@@ -21,6 +22,7 @@ type ApiResponse = ServerResponse & {
 const zones = new Set(['1. Aguho', '2. Martirez', '3. Poblacion']);
 const preferredTimes = new Set(APPOINTMENT_TIME_SLOTS);
 const priorityCategoryOptions = new Set(['pwd', 'senior_citizen', 'pregnant_lactating']);
+const guardianRelationships = new Set(['Parent', 'Legal guardian', 'Other guardian']);
 
 let database: ReturnType<typeof createClient> | undefined;
 
@@ -52,8 +54,12 @@ async function ensureAppointmentTable(db: ReturnType<typeof createClient>) {
       address TEXT NOT NULL,
       chief_complaint TEXT NOT NULL,
       age INTEGER NOT NULL,
+      guardian_name TEXT,
+      guardian_relationship TEXT,
+      guardian_consent INTEGER NOT NULL DEFAULT 0,
       priority_categories TEXT NOT NULL DEFAULT '',
       attendance_consent INTEGER NOT NULL DEFAULT 0,
+      early_arrival_consent INTEGER NOT NULL DEFAULT 0,
       zone TEXT NOT NULL,
       service_id TEXT NOT NULL,
       service_name TEXT NOT NULL,
@@ -63,7 +69,8 @@ async function ensureAppointmentTable(db: ReturnType<typeof createClient>) {
       status TEXT NOT NULL DEFAULT 'pending',
       chat_status TEXT NOT NULL DEFAULT 'closed',
       created_at TEXT NOT NULL,
-      completed_at TEXT
+      completed_at TEXT,
+      missed_at TEXT
     )
   `);
   const columns = await db.execute('PRAGMA table_info(appointment_requests)');
@@ -77,6 +84,9 @@ async function ensureAppointmentTable(db: ReturnType<typeof createClient>) {
   if (!columnNames.has('completed_at')) {
     await db.execute('ALTER TABLE appointment_requests ADD COLUMN completed_at TEXT');
   }
+  if (!columnNames.has('missed_at')) {
+    await db.execute('ALTER TABLE appointment_requests ADD COLUMN missed_at TEXT');
+  }
   if (!columnNames.has('address')) {
     await db.execute('ALTER TABLE appointment_requests ADD COLUMN address TEXT');
   }
@@ -88,6 +98,18 @@ async function ensureAppointmentTable(db: ReturnType<typeof createClient>) {
   }
   if (!columnNames.has('age')) {
     await db.execute('ALTER TABLE appointment_requests ADD COLUMN age INTEGER');
+  }
+  if (!columnNames.has('guardian_name')) {
+    await db.execute('ALTER TABLE appointment_requests ADD COLUMN guardian_name TEXT');
+  }
+  if (!columnNames.has('guardian_relationship')) {
+    await db.execute('ALTER TABLE appointment_requests ADD COLUMN guardian_relationship TEXT');
+  }
+  if (!columnNames.has('guardian_consent')) {
+    await db.execute('ALTER TABLE appointment_requests ADD COLUMN guardian_consent INTEGER NOT NULL DEFAULT 0');
+  }
+  if (!columnNames.has('early_arrival_consent')) {
+    await db.execute('ALTER TABLE appointment_requests ADD COLUMN early_arrival_consent INTEGER NOT NULL DEFAULT 0');
   }
   if (!columnNames.has('priority_categories')) {
     await db.execute("ALTER TABLE appointment_requests ADD COLUMN priority_categories TEXT NOT NULL DEFAULT ''");
@@ -240,9 +262,13 @@ export default async function handler(request: ApiRequest, response: ApiResponse
     : {};
   const patientName = text(body.patientName, 120);
   const phone = text(body.phone, 32);
-  const address = text(body.address, 250);
+  const houseApartmentNumber = text(body.houseApartmentNumber, 100);
+  const streetName = text(body.streetName, 150);
+  const address = [houseApartmentNumber, streetName].filter(Boolean).join(', ').slice(0, 250);
   const chiefComplaint = text(body.chiefComplaint, 2000);
   const age = body.age;
+  const guardianName = text(body.guardianName, 120);
+  const guardianRelationship = text(body.guardianRelationship, 60);
   const priorityCategories = body.priorityCategories;
   const zone = text(body.zone, 40);
   const serviceId = text(body.serviceId, 40);
@@ -263,19 +289,28 @@ export default async function handler(request: ApiRequest, response: ApiResponse
     }
   }
 
-  const phoneDigits = phone.replace(/\D/g, '');
   const dateIsValid = /^\d{4}-\d{2}-\d{2}$/.test(preferredDate)
     && !Number.isNaN(Date.parse(`${preferredDate}T00:00:00Z`))
     && new Date(`${preferredDate}T00:00:00Z`).toISOString().slice(0, 10) === preferredDate;
   const now = new Date();
   const earliestAppointmentDate = getEarliestAppointmentDate(now);
+  const latestAppointmentDate = getLatestAppointmentDate(now);
 
   if (patientName.length < 2) return response.status(400).json({ error: 'Enter a valid full name.' });
-  if (phoneDigits.length < 7) return response.status(400).json({ error: 'Enter a contact number with at least 7 digits.' });
-  if (address.length < 5) return response.status(400).json({ error: 'Enter a valid home address.' });
+  if (!/^\+639\d{9}$/.test(phone)) return response.status(400).json({ error: 'Enter a valid Philippine mobile number with +63 and 10 digits.' });
+  if (!houseApartmentNumber || streetName.length < 2 || address.length < 5) {
+    return response.status(400).json({ error: 'Enter a valid house/apartment number and street name.' });
+  }
   if (chiefComplaint.length < 2) return response.status(400).json({ error: 'Describe your chief complaint or reason for the visit.' });
-  if (typeof age !== 'number' || !Number.isInteger(age) || age < 0 || age > 120) {
-    return response.status(400).json({ error: 'Enter a valid age from 0 to 120.' });
+  if (typeof age !== 'number' || !Number.isInteger(age) || age < 0 || age > 110) {
+    return response.status(400).json({ error: 'Enter a valid age from 0 to 110.' });
+  }
+  if (age <= 17 && (
+    guardianName.length < 2
+    || !guardianRelationships.has(guardianRelationship)
+    || body.guardianConsent !== true
+  )) {
+    return response.status(400).json({ error: 'Patients aged 17 and younger must provide a parent or guardian and confirm they will attend.' });
   }
   if (!Array.isArray(priorityCategories)
     || priorityCategories.some((category) => typeof category !== 'string' || !priorityCategoryOptions.has(category))
@@ -288,10 +323,13 @@ export default async function handler(request: ApiRequest, response: ApiResponse
   if (age >= 60 && !priorityCategories.includes('senior_citizen')) {
     priorityCategories.push('senior_citizen');
   }
+  if (age >= 60 && priorityCategories.includes('pregnant_lactating')) {
+    return response.status(400).json({ error: 'Pregnant or lactating priority cannot be selected with senior citizen priority.' });
+  }
   if (!zones.has(zone)) return response.status(400).json({ error: 'Select a valid zone or barangay.' });
   if (!/^[a-zA-Z0-9_-]{1,80}$/.test(serviceId)) return response.status(400).json({ error: 'Select a valid service.' });
-  if (!dateIsValid || preferredDate < earliestAppointmentDate) {
-    return response.status(400).json({ error: `Choose an appointment date on or after ${earliestAppointmentDate} (Philippines time).` });
+  if (!dateIsValid || preferredDate < earliestAppointmentDate || preferredDate > latestAppointmentDate) {
+    return response.status(400).json({ error: `Choose an appointment date between ${earliestAppointmentDate} and ${latestAppointmentDate} (Philippines time).` });
   }
   if (!preferredTimes.has(preferredTime)) return response.status(400).json({ error: 'Select a half-hour appointment time between 9:00 AM and 2:00 PM.' });
   if (!isAppointmentTimeAvailable(preferredDate, preferredTime, now)) {
@@ -299,6 +337,7 @@ export default async function handler(request: ApiRequest, response: ApiResponse
   }
   if (body.privacyConsent !== true) return response.status(400).json({ error: 'Please agree to the contact and privacy consent.' });
   if (body.attendanceConsent !== true) return response.status(400).json({ error: 'Please acknowledge the appointment attendance reminder.' });
+  if (body.arrivalConsent !== true) return response.status(400).json({ error: 'Please confirm that you will arrive 30 minutes before your appointment.' });
 
   const db = getDatabase();
   if (!db) return response.status(503).json({ error: 'Appointment requests are temporarily unavailable.' });
@@ -320,13 +359,16 @@ export default async function handler(request: ApiRequest, response: ApiResponse
     if (!serviceResult.rows[0]) {
       return response.status(400).json({ error: 'This service is no longer available for appointment requests.' });
     }
-    const service = JSON.parse(String(serviceResult.rows[0].content_json)) as { title?: unknown };
+    const service = JSON.parse(String(serviceResult.rows[0].content_json)) as { title?: unknown; category?: unknown };
     const serviceName = serviceId === 'xray'
       ? 'X-Ray Referral Request'
       : serviceId === 'pharmacy'
         ? 'Medication Request'
         : typeof service.title === 'string' ? service.title.trim().slice(0, 160) : '';
     if (!serviceName) return response.status(400).json({ error: 'The selected service is not configured for appointment requests.' });
+    if (service.category === 'animal_bite' && !priorityCategories.includes('animal_bite')) {
+      priorityCategories.push('animal_bite');
+    }
     const transaction = await db.transaction('write');
     try {
       const activeAppointment = await transaction.execute({
@@ -378,11 +420,19 @@ export default async function handler(request: ApiRequest, response: ApiResponse
       const message = `This is an automated message.\n\nYour appointment for ${serviceName} on ${preferredDate} at ${appointmentTime} has been automatically confirmed. You can view the schedule in your appointment chat.\n\nFilipino:\nAwtomatikong mensahe ito. Kumpirmado na ang iyong appointment para sa ${serviceName} sa ${preferredDate}, ganap na ${appointmentTime}. Maaari mong tingnan ang iskedyul sa chat ng iyong appointment.`;
       await transaction.execute({
         sql: `INSERT INTO appointment_requests (
-          id, owner_uid, reference_code, patient_name, phone, address, chief_complaint, age, priority_categories,
+          id, owner_uid, reference_code, patient_name, phone, address, chief_complaint, age,
+          guardian_name, guardian_relationship, guardian_consent, priority_categories,
           zone, service_id, service_name, preferred_date, preferred_time, privacy_consent,
-          attendance_consent, status, chat_status, created_at
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, ?, ?, 'open', ?)`,
-        args: [id, ownerUid, referenceCode, patientName, phone, address, chiefComplaint, age, priorityCategories.join(','), zone, serviceId, serviceName, preferredDate, preferredTime, body.attendanceConsent ? 1 : 0, status, createdAt],
+          attendance_consent, early_arrival_consent, status, chat_status, created_at
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, ?, ?, ?, 'open', ?)`,
+        args: [
+          id, ownerUid, referenceCode, patientName, phone, address, chiefComplaint, age,
+          age <= 17 ? guardianName : null,
+          age <= 17 ? guardianRelationship : null,
+          age <= 17 && body.guardianConsent === true ? 1 : 0,
+          priorityCategories.join(','), zone, serviceId, serviceName, preferredDate, preferredTime,
+          body.attendanceConsent ? 1 : 0, body.arrivalConsent ? 1 : 0, status, createdAt,
+        ],
       });
       await transaction.execute({
         sql: `INSERT INTO appointment_messages

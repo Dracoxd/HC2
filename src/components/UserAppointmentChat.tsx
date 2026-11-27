@@ -32,6 +32,10 @@ interface UserMessage {
   created_at: string;
 }
 
+const isAutomatedReminder = (message: UserMessage) => message.sender_role === 'admin'
+  && (message.message.startsWith('This is an automated reminder.')
+    || message.message.startsWith('Reminder: Your appointment'));
+
 function isStringArray(value: unknown): value is string[] {
   return Array.isArray(value) && value.every((item) => typeof item === 'string');
 }
@@ -137,13 +141,13 @@ export const UserAppointmentChat: React.FC = () => {
       }));
       normalizedAppointments.forEach((appointment) => {
         const previousStatus = lastStatuses[appointment.id];
-        if (previousStatus && previousStatus !== appointment.status) {
+        if (previousStatus && previousStatus !== appointment.status && appointment.status !== 'missed') {
           window.dispatchEvent(new CustomEvent('appointment-status-change', { detail: { status: appointment.status, referenceCode: appointment.reference_code } }));
         }
       });
       setLastStatuses(Object.fromEntries(normalizedAppointments.map((appointment) => [appointment.id, appointment.status])));
       setAppointments(normalizedAppointments);
-      setMessages(data.messages);
+      setMessages(data.messages.filter((message) => !isAutomatedReminder(message)));
       setError('');
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : 'Appointment chat could not be loaded.');
@@ -288,8 +292,8 @@ export const UserAppointmentChat: React.FC = () => {
   };
 
   return (
-    <section role="dialog" aria-modal="true" aria-labelledby="messages-title" className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/50 p-2 pt-[max(0.5rem,env(safe-area-inset-top))] pb-[max(0.5rem,env(safe-area-inset-bottom))] sm:p-6" onMouseDown={(event) => { if (event.target === event.currentTarget) setMessagesOpen(false); }}>
-      <div className="flex max-h-[calc(100dvh-1rem-env(safe-area-inset-top)-env(safe-area-inset-bottom))] w-full max-w-5xl flex-col overflow-hidden border border-[#dfe6e1] bg-[#f8faf7] shadow-2xl sm:max-h-[92dvh]">
+    <section role="dialog" aria-modal="true" aria-labelledby="messages-title" className="fixed inset-0 z-[60] flex items-center justify-center bg-slate-950/50 p-2 pt-[max(0.5rem,env(safe-area-inset-top))] pb-[max(0.5rem,env(safe-area-inset-bottom))] sm:p-6" onMouseDown={(event) => { if (event.target === event.currentTarget) setMessagesOpen(false); }}>
+      <div className="flex max-h-[calc(100dvh-1rem-env(safe-area-inset-top)-env(safe-area-inset-bottom))] w-full max-w-3xl flex-col overflow-hidden rounded-2xl border border-[#dfe6e1] bg-[#f8faf7] shadow-2xl sm:max-h-[82dvh]">
         <header className="flex shrink-0 items-center justify-between border-b border-[#dfe6e1] bg-white px-4 py-3 sm:px-5 sm:py-4">
           <div><div className="text-xs font-bold text-[#17645c]">Your appointments</div><h2 id="messages-title" className="mt-1 text-xl font-bold text-[#17312e]">Messages</h2></div>
           <button type="button" onClick={() => setMessagesOpen(false)} aria-label="Close messages" className="p-2 text-[#66736f] hover:bg-[#f1f4f1]"><X className="h-5 w-5" /></button>

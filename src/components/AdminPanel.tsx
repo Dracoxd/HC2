@@ -16,8 +16,12 @@ interface AppointmentRow {
   address: string | null;
   chief_complaint: string | null;
   age: number | null;
+  guardian_name: string | null;
+  guardian_relationship: string | null;
+  guardian_consent: number;
   priority_categories: string;
   attendance_consent: number;
+  early_arrival_consent: number;
   zone: string;
   service_name: string;
   preferred_date: string;
@@ -26,6 +30,7 @@ interface AppointmentRow {
   chat_status: string;
   created_at: string;
   completed_at: string | null;
+  missed_at: string | null;
 }
 
 interface ChatMessage {
@@ -42,6 +47,7 @@ const priorityCategoryLabels = {
   pwd: 'Person with disability (PWD)',
   senior_citizen: 'Senior citizen',
   pregnant_lactating: 'Pregnant or lactating',
+  animal_bite: 'Animal bite patient',
 };
 
 function getPriorityCategoryLabels(value: string) {
@@ -54,8 +60,9 @@ function getPriorityCategoryLabels(value: string) {
 
 function exportCompletedAppointments(appointments: AppointmentRow[]) {
   const columns: Array<keyof AppointmentRow> = [
-    'reference_code', 'patient_name', 'phone', 'email', 'address', 'chief_complaint', 'age', 'priority_categories',
-    'zone', 'service_name', 'preferred_date', 'preferred_time', 'status', 'created_at', 'completed_at',
+    'reference_code', 'patient_name', 'phone', 'email', 'address', 'chief_complaint', 'age', 'guardian_name',
+    'guardian_relationship', 'guardian_consent', 'priority_categories', 'zone', 'service_name', 'preferred_date',
+    'preferred_time', 'status', 'created_at', 'completed_at', 'missed_at', 'early_arrival_consent',
   ];
   const csvCell = (value: string) => {
     const safeValue = /^[\s]*[=+\-@]/.test(value) ? `'${value}` : value;
@@ -347,8 +354,12 @@ export const AdminPanel: React.FC = () => {
                   <dl className="mt-6 space-y-4 border-y border-[#edf1ee] py-5 text-sm">
                     <div><dt className="text-[11px] font-bold uppercase tracking-wide text-[#87938c]">Preferred appointment</dt><dd className="mt-1 font-medium">{selected.preferred_date} · {formatAppointmentTime(selected.preferred_time)}</dd></div>
                     {selected.age !== null && <div><dt className="text-[11px] font-bold uppercase tracking-wide text-[#87938c]">Age</dt><dd className="mt-1 font-medium">{selected.age}</dd></div>}
+                    {selected.guardian_name && <div><dt className="text-[11px] font-bold uppercase tracking-wide text-[#87938c]">Parent / guardian</dt><dd className="mt-1 font-medium">{selected.guardian_name} ({selected.guardian_relationship})</dd></div>}
+                    {selected.guardian_consent === 1 && <div><dt className="text-[11px] font-bold uppercase tracking-wide text-[#87938c]">Guardian attendance</dt><dd className="mt-1 font-medium">Confirmed</dd></div>}
                     {getPriorityCategoryLabels(selected.priority_categories ?? '').length > 0 && <div><dt className="text-[11px] font-bold uppercase tracking-wide text-[#87938c]">Priority categories</dt><dd className="mt-1 font-medium">{getPriorityCategoryLabels(selected.priority_categories ?? '').join(', ')}</dd></div>}
+                    {selected.early_arrival_consent === 1 && <div><dt className="text-[11px] font-bold uppercase tracking-wide text-[#87938c]">Early arrival</dt><dd className="mt-1 font-medium">Patient confirmed a 30-minute early arrival.</dd></div>}
                     {selected.completed_at && <div><dt className="text-[11px] font-bold uppercase tracking-wide text-[#87938c]">Marked completed</dt><dd className="mt-1 font-medium">{new Intl.DateTimeFormat('en-US', { timeZone: 'Asia/Manila', dateStyle: 'medium', timeStyle: 'short' }).format(new Date(selected.completed_at))}</dd></div>}
+                    {selected.missed_at && <div><dt className="text-[11px] font-bold uppercase tracking-wide text-[#87938c]">Marked missed</dt><dd className="mt-1 font-medium">{new Intl.DateTimeFormat('en-US', { timeZone: 'Asia/Manila', dateStyle: 'medium', timeStyle: 'short' }).format(new Date(selected.missed_at))}</dd></div>}
                     <div><dt className="text-[11px] font-bold uppercase tracking-wide text-[#87938c]">Barangay</dt><dd className="mt-1 font-medium">{selected.zone}</dd></div>
                     <div><dt className="text-[11px] font-bold uppercase tracking-wide text-[#87938c]">Contact number</dt><dd className="mt-1 font-medium">{selected.phone}</dd></div>
                     {selected.address && <div><dt className="text-[11px] font-bold uppercase tracking-wide text-[#87938c]">Address</dt><dd className="mt-1 break-words font-medium">{selected.address}</dd></div>}
