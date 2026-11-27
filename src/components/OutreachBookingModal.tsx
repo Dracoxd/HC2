@@ -59,7 +59,7 @@ export const OutreachBookingModal: React.FC = () => {
     siteContent,
   } = useHealthCenter();
   const services = siteContent.services;
-  const [serviceId, setServiceId] = useState('checkup');
+  const [serviceId, setServiceId] = useState('');
   const [patientName, setPatientName] = useState('');
   const [phone, setPhone] = useState('');
   const [age, setAge] = useState('');
@@ -143,16 +143,10 @@ export const OutreachBookingModal: React.FC = () => {
   }, [dateBlocked, preferredDate, preferredTime, now, slotSettings, unavailableSlots, priorityCategories]);
 
   useEffect(() => {
-    if (selectedProgramForBooking && services.some((service) => service.id === selectedProgramForBooking)) {
+    if (bookingModalOpen && selectedProgramForBooking && services.some((service) => service.id === selectedProgramForBooking)) {
       setServiceId(selectedProgramForBooking);
     }
-  }, [selectedProgramForBooking, services]);
-
-  useEffect(() => {
-    if (services.length > 0 && !services.some((service) => service.id === serviceId)) {
-      setServiceId(services[0].id);
-    }
-  }, [services, serviceId]);
+  }, [bookingModalOpen, selectedProgramForBooking, services]);
 
   useEffect(() => {
     const isMaternityService = services.find((service) => service.id === serviceId)?.category === 'maternity';
@@ -168,6 +162,7 @@ export const OutreachBookingModal: React.FC = () => {
     if (!bookingModalOpen) {
       setReceipt(null);
       setError('');
+      setServiceId('');
       setPatientName('');
       setPhone('');
       setAge('');
@@ -178,6 +173,7 @@ export const OutreachBookingModal: React.FC = () => {
       setGuardianRelationship('');
       setGuardianConsent(false);
       setPriorityCategories([]);
+      setZone('1. Aguho');
       setPrivacyConsent(false);
       setAttendanceConsent(false);
       setArrivalConsent(false);
@@ -216,6 +212,8 @@ export const OutreachBookingModal: React.FC = () => {
             service_id?: string;
             guardian_name?: string | null;
             guardian_relationship?: string | null;
+            chief_complaint?: string | null;
+            priority_categories?: string | null;
             created_at?: string;
           }>;
           error?: string;
@@ -235,13 +233,19 @@ export const OutreachBookingModal: React.FC = () => {
             setStreetName(addressSeparator < 0 ? '' : priorAddress.slice(addressSeparator + 1).trim());
             const previousAge = previousAppointment?.age == null ? '' : String(previousAppointment.age);
             setAge(previousAge);
-            setPriorityCategories((current) => Number(previousAge) >= 60
-              ? current.includes('senior_citizen') ? current : [...current, 'senior_citizen']
-              : current.filter((category) => category !== 'senior_citizen'));
-            if (previousAppointment?.zone) setZone(previousAppointment.zone);
             setGuardianName(previousAppointment?.guardian_name || '');
             setGuardianRelationship(previousAppointment?.guardian_relationship || '');
             setGuardianConsent(false);
+            setChiefComplaint(previousAppointment?.chief_complaint || '');
+            setPriorityCategories((current) => {
+              const priorCategories = (previousAppointment?.priority_categories || '')
+                .split(',')
+                .filter((category) => category === 'pwd' || category === 'pregnant_lactating');
+              return Number(previousAge) >= 60
+                ? [...priorCategories, 'senior_citizen']
+                : priorCategories;
+            });
+            if (previousAppointment?.zone) setZone(previousAppointment.zone);
             if (!selectedProgramForBooking
               && previousAppointment?.service_id
               && services.some((service) => service.id === previousAppointment.service_id)) {
@@ -509,6 +513,7 @@ export const OutreachBookingModal: React.FC = () => {
               <div className="sm:col-span-2">
                 <label htmlFor="appointment-service" className="mb-1 block text-sm font-semibold text-slate-800">{isFilipino ? 'Serbisyo' : 'Service'}</label>
                 <select id="appointment-service" required value={serviceId} onChange={(event) => setServiceId(event.target.value)} className="min-h-12 w-full rounded-md border border-slate-300 bg-white px-3.5 py-2.5 text-base text-slate-900 focus:outline-none focus:ring-2 focus:ring-teal-700">
+                  <option value="" disabled>{isFilipino ? 'Pumili ng serbisyo' : 'Choose a service'}</option>
                   {services.map((service) => <option key={service.id} value={service.id}>{isFilipino ? service.titleFil : service.title}</option>)}
                 </select>
                 {services.length === 0 && <p role="status" className="mt-2 text-xs text-amber-800">{isFilipino ? 'Walang kasalukuyang nailathalang serbisyo para sa appointment request.' : 'There are no published services available for appointment requests.'}</p>}
@@ -566,14 +571,13 @@ export const OutreachBookingModal: React.FC = () => {
                 <input
                   id="appointment-age"
                   required
-                  type="number"
-                  min={0}
-                  max={110}
-                  step={1}
+                  type="text"
                   inputMode="numeric"
+                  pattern="(?:0|[1-9][0-9]?|10[0-9]|110)"
+                  maxLength={3}
                   value={age}
                   onChange={(event) => {
-                    const nextAge = event.target.value;
+                    const nextAge = event.target.value.replace(/\D/g, '').slice(0, 3);
                     const qualifiesAsSenior = nextAge !== '' && Number(nextAge) >= 60;
                     setAge(nextAge);
                     setPriorityCategories((current) => qualifiesAsSenior
@@ -587,8 +591,8 @@ export const OutreachBookingModal: React.FC = () => {
                 <legend className="px-1 text-sm font-semibold text-slate-800">{isFilipino ? 'Priority category (opsyonal; piliin lahat ng naaangkop)' : 'Priority category (optional; select all that apply)'}</legend>
                 {isAnimalBiteService && <p className="mb-2 rounded-md border border-orange-200 bg-orange-50 p-3 text-sm font-medium text-orange-900">
                   {isFilipino
-                    ? 'Awtomatikong priority appointment ang Animal Bite. Makipag-ugnayan kaagad sa klinika para sa pagsusuri.'
-                    : 'Animal Bite requests are automatically prioritized. Contact the clinic promptly for an assessment.'}
+                    ? 'Awtomatikong priority appointment ang Animal Bite dahil mahalaga ang agarang anti-rabies vaccination. Pumunta rin agad sa klinika para sa pagsusuri.'
+                    : 'Animal Bite is automatically prioritized because timely rabies vaccination is important. Please also visit the clinic promptly for assessment.'}
                 </p>}
                 <div className="grid gap-2 sm:grid-cols-3">
                   {priorityCategoryOptions.map(({ value, label }) => (
@@ -648,11 +652,11 @@ export const OutreachBookingModal: React.FC = () => {
               <div className="sm:col-span-2">
                 <label className="flex items-start gap-3 border border-slate-200 p-3 text-sm leading-relaxed text-slate-700">
                   <input type="checkbox" required checked={arrivalConsent} onChange={(event) => setArrivalConsent(event.target.checked)} className="mt-0.5 h-5 w-5 shrink-0 accent-teal-800" />
-                  <span>{isFilipino ? 'Nauunawaan kong kailangan kong dumating 30 minuto bago ang appointment.' : 'I understand that I must arrive 30 minutes before my appointment.'}</span>
+                  <span>{isFilipino ? 'Nauunawaan kong dapat akong dumating sa health center nang hindi bababa sa 30 minuto bago ang oras ng aking appointment.' : 'I understand I should arrive at the health center at least 30 minutes before my scheduled appointment.'}</span>
                 </label>
               </div>
               <div className="sm:col-span-2">
-                <button type="button" disabled={!attendanceConsent || !arrivalConsent || (isMinor && (!guardianName.trim() || !guardianRelationship || !guardianConsent))} onClick={handleContinueToSchedule} className="mt-1 min-h-12 w-full rounded-sm bg-[#0f4d3c] px-4 py-3 text-base font-bold text-white hover:bg-[#2c7a5f] disabled:cursor-not-allowed disabled:opacity-60">
+                <button type="button" disabled={!selectedService || !attendanceConsent || !arrivalConsent || (isMinor && (!guardianName.trim() || !guardianRelationship || !guardianConsent))} onClick={handleContinueToSchedule} className="mt-1 min-h-12 w-full rounded-sm bg-[#0f4d3c] px-4 py-3 text-base font-bold text-white hover:bg-[#2c7a5f] disabled:cursor-not-allowed disabled:opacity-60">
                   {isFilipino ? 'Magpatuloy sa schedule' : 'Continue to schedule'}
                 </button>
               </div>
@@ -681,7 +685,7 @@ export const OutreachBookingModal: React.FC = () => {
               <div className="sm:col-span-2">
                 <label className="flex items-start gap-3 border-t border-slate-200 pt-4 text-sm leading-relaxed text-slate-600">
                   <input type="checkbox" required checked={privacyConsent} onChange={(event) => setPrivacyConsent(event.target.checked)} className="mt-0.5 h-5 w-5 shrink-0 accent-teal-800" />
-                  <span>{isFilipino ? 'Pumapayag akong gamitin ng kawani ng health center ang aking personal at pangkalusugang impormasyon, kabilang ang detalye ng appointment at pangunahing reklamo, upang suriin at tugunan ang request na ito.' : 'I agree that health center staff may use my personal and health information, including appointment details and chief complaint, to review and respond to this request.'}</span>
+                  <span>{isFilipino ? 'Alinsunod sa Republic Act No. 10173 (Data Privacy Act of 2012), pumapayag akong kolektahin at gamitin ng health center staff ang aking personal at pangkalusugang impormasyon para suriin at tugunan ang appointment request na ito.' : 'Under Republic Act No. 10173 (the Data Privacy Act of 2012), I consent to health center staff collecting and using my personal and health information to review and respond to this appointment request.'}</span>
                 </label>
               </div>
             </div>}
