@@ -517,14 +517,6 @@ export const OutreachBookingModal: React.FC = () => {
                   {services.map((service) => <option key={service.id} value={service.id}>{isFilipino ? service.titleFil : service.title}</option>)}
                 </select>
                 {services.length === 0 && <p role="status" className="mt-2 text-xs text-amber-800">{isFilipino ? 'Walang kasalukuyang nailathalang serbisyo para sa appointment request.' : 'There are no published services available for appointment requests.'}</p>}
-                {selectedService && (isFilipino ? selectedService.requirementsFil : selectedService.requirements).length > 0 && (
-                  <div className="mt-3 border border-[#dce7e1] bg-[#f7faf8] px-3 py-2.5 text-xs text-[#43534d]">
-                    <p className="font-bold">{isFilipino ? 'Mga kailangang dalhin' : 'Requirements to bring'}</p>
-                    <ul className="mt-1 list-disc space-y-0.5 pl-5">
-                      {(isFilipino ? selectedService.requirementsFil : selectedService.requirements).map((requirement) => <li key={requirement}>{requirement}</li>)}
-                    </ul>
-                  </div>
-                )}
               </div>
               <div>
                 <label htmlFor="appointment-name" className="mb-1 block text-sm font-semibold text-slate-800">{t.formFullName} *</label>

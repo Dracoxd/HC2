@@ -150,7 +150,7 @@ export const translations = {
     hotlineTitle: 'Emergency Hotlines',
     hotlinePateros: 'Pateros Municipal Rescue: (02) 8642-5159',
     hotlineAnimalBite: 'Animal Bite Hotline: (02) 8641-7640',
-    hotlineHealthCenter: 'Center Landline: (02) 8642-1923',
+    hotlineHealthCenter: 'Center Hotline: +63 2-642 4783',
 
 
     footerDescription: 'Serving Aguho, Martirez, and Poblacion in Pateros.',
@@ -309,7 +309,7 @@ export const translations = {
     hotlineTitle: 'Mahahalagang Numero',
     hotlinePateros: 'Pateros Municipal Rescue: (02) 8642-5159',
     hotlineAnimalBite: 'Animal Bite Hotline: (02) 8641-7640',
-    hotlineHealthCenter: 'Telepono ng Center: (02) 8642-1923',
+    hotlineHealthCenter: 'Hotline ng Center: +63 2-642 4783',
 
 
     footerDescription: 'Naglilingkod sa Aguho, Martirez, at Poblacion sa Pateros.',
