@@ -9,6 +9,7 @@ interface AssistantMessage {
   role: 'user' | 'assistant';
   text: string;
   provider?: string;
+  sources?: string[];
 }
 
 interface UserAppointment {
@@ -29,6 +30,10 @@ interface UserMessage {
   sender_name: string;
   message: string;
   created_at: string;
+}
+
+function isStringArray(value: unknown): value is string[] {
+  return Array.isArray(value) && value.every((item) => typeof item === 'string');
 }
 
 function getClinicInformationAnswer(question: string, siteContent: ReturnType<typeof useHealthCenter>['siteContent'], isFilipino: boolean) {
@@ -224,19 +229,25 @@ export const UserAppointmentChat: React.FC = () => {
         body: JSON.stringify({ question }),
       });
       const responseBody = await response.text();
-      let result: { reply?: unknown; provider?: unknown; error?: string };
+      let result: { reply?: unknown; provider?: unknown; sources?: unknown; notice?: string; error?: string };
       try {
-        result = JSON.parse(responseBody) as { reply?: unknown; provider?: unknown; error?: string };
+        result = JSON.parse(responseBody) as { reply?: unknown; provider?: unknown; sources?: unknown; notice?: string; error?: string };
       } catch {
         throw new Error(`AI support could not answer right now (HTTP ${response.status}).`);
       }
-      if (!response.ok || typeof result.reply !== 'string' || typeof result.provider !== 'string') {
+      if (!response.ok || typeof result.reply !== 'string' || typeof result.provider !== 'string'
+        || !isStringArray(result.sources)) {
         throw new Error(result.error || 'AI support could not answer right now.');
       }
-      const { reply, provider } = result;
+      const { reply, provider, sources } = result;
+      if (result.notice) {
+        setAssistantError(isFilipino
+          ? 'Hindi napatunayan ang sagot ng AI mula sa mga sanggunian sa website, kaya ipinapakita ang nailathalang impormasyon.'
+          : result.notice);
+      }
       setAssistantMessages((current) => [
         ...current,
-        { id: `answer-${messageId}`, role: 'assistant', text: reply, provider },
+        { id: `answer-${messageId}`, role: 'assistant', text: reply, provider, sources },
       ]);
     } catch (caught) {
       const errorMessage = caught instanceof Error ? caught.message : 'AI support could not answer right now.';
@@ -306,6 +317,7 @@ export const UserAppointmentChat: React.FC = () => {
                   <div className={`max-w-[85%] rounded-xl px-4 py-3 text-sm ${message.role === 'user' ? 'bg-[#17645c] text-white' : 'bg-white text-[#17312e] shadow-sm'}`}>
                     {message.provider && <div className="mb-1 text-[10px] font-bold uppercase tracking-wide text-[#66736f]">{message.provider}</div>}
                     <p className="whitespace-pre-line">{message.text}</p>
+                    {message.sources && message.sources.length > 0 && <p className="mt-2 border-t border-[#dfe6e1] pt-2 text-[10px] text-[#66736f]">{isFilipino ? 'Mga sanggunian sa website:' : 'Website sources:'} {message.sources.join(', ')}</p>}
                   </div>
                 </div>
               ))}
