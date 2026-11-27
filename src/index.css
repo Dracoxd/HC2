@@ -205,6 +205,34 @@
     min-height: 48px;
   }
 
+  html[data-accessibility-touch-targets="true"] body :where(button, [role="button"]) {
+    min-width: 48px;
+  }
+
+  html body :where([class*="text-[9px]"]) {
+    font-size: calc(9px * var(--accessibility-font-scale)) !important;
+  }
+
+  html body :where([class*="text-[10px]"]) {
+    font-size: calc(10px * var(--accessibility-font-scale)) !important;
+  }
+
+  html body :where([class*="text-[11px]"]) {
+    font-size: calc(11px * var(--accessibility-font-scale)) !important;
+  }
+
+  html body :where([class*="text-[12px]"]) {
+    font-size: calc(12px * var(--accessibility-font-scale)) !important;
+  }
+
+  html body :where([class*="text-[13px]"]) {
+    font-size: calc(13px * var(--accessibility-font-scale)) !important;
+  }
+
+  html body :where([class*="text-[40px]"]) {
+    font-size: calc(40px * var(--accessibility-font-scale)) !important;
+  }
+
   html[data-accessibility-highlight-links="true"] body :where(a, button, [role="button"], input, select, textarea) {
     outline: 2px solid #9a5b00;
     outline-offset: 2px;

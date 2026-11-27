@@ -90,6 +90,46 @@ function appointmentsApiDevPlugin(): Plugin {
           response.end(JSON.stringify({ error: 'Invalid request body.' }));
         }
       });
+      server.middlewares.use('/api/support-chat', async (request, response, next) => {
+        void next;
+        try {
+          const apiRequest = request as typeof request & { body?: unknown; headers: IncomingHttpHeaders };
+          if (request.method === 'POST') {
+            const chunks: Buffer[] = [];
+            let size = 0;
+            for await (const chunk of request) {
+              const buffer = Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk);
+              size += buffer.length;
+              if (size > 8_192) {
+                response.statusCode = 413;
+                response.setHeader('Content-Type', 'application/json');
+                response.end(JSON.stringify({ error: 'Question is too large.' }));
+                return;
+              }
+              chunks.push(buffer);
+            }
+            apiRequest.body = JSON.parse(Buffer.concat(chunks).toString('utf8'));
+          }
+          const apiResponse = response as typeof response & {
+            status: (code: number) => typeof response;
+            json: (body: unknown) => void;
+          };
+          apiResponse.status = (code) => {
+            response.statusCode = code;
+            return response;
+          };
+          apiResponse.json = (body) => {
+            response.setHeader('Content-Type', 'application/json');
+            response.end(JSON.stringify(body));
+          };
+          const { default: handler } = await server.ssrLoadModule('/api/support-chat.ts');
+          await handler(apiRequest, apiResponse);
+        } catch {
+          response.statusCode = 400;
+          response.setHeader('Content-Type', 'application/json');
+          response.end(JSON.stringify({ error: 'Invalid support chat request.' }));
+        }
+      });
     },
   };
 }
@@ -101,6 +141,9 @@ export default defineConfig(() => {
       alias: {
         '@': path.resolve(__dirname, '.'),
       },
+    },
+    build: {
+      sourcemap: false,
     },
     server: {
       // HMR is disabled in AI Studio via DISABLE_HMR env var.

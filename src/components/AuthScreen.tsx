@@ -1,7 +1,194 @@
-import React, { useEffect, useState } from 'react';
-import { SignIn, SignUp } from '@clerk/react';
-import { X } from 'lucide-react';
+import React, { FormEvent, useEffect, useState } from 'react';
+import { SignIn, useSignUp } from '@clerk/react';
+import { Eye, EyeOff, X } from 'lucide-react';
 import centerPhoto from '../assets/images/QUINTIN.png';
+import { formatPhilippinePhoneNumber, isValidPhilippinePhoneNumber, normalizePhilippinePhoneNumber } from '../philippinePhone';
+
+const usernamePattern = /^[a-z][a-z0-9_]{2,19}$/;
+const usernameHint = 'Use 3–20 lowercase letters, numbers, or underscores; start with a letter.';
+
+const AuthField: React.FC<{
+  id: string;
+  label: string;
+  value: string;
+  onChange: (value: string) => void;
+  type?: string;
+  autoComplete?: string;
+  hint?: string;
+  error?: string;
+  minLength?: number;
+  maxLength?: number;
+  pattern?: string;
+  visible?: boolean;
+  onToggleVisibility?: () => void;
+}> = ({ id, label, value, onChange, type = 'text', autoComplete, hint, error, minLength, maxLength, pattern, visible, onToggleVisibility }) => (
+  <div>
+    <label htmlFor={id} className="mb-1.5 block text-sm font-medium text-zinc-800">{label}</label>
+    <div className="relative">
+      <input
+        id={id}
+        name={id}
+        type={onToggleVisibility && visible ? 'text' : type}
+        value={value}
+        onChange={(event) => onChange(event.target.value)}
+        autoComplete={autoComplete}
+        required
+        minLength={minLength}
+        maxLength={maxLength}
+        pattern={pattern}
+        aria-invalid={Boolean(error)}
+        aria-describedby={[hint && `${id}-hint`, error && `${id}-error`].filter(Boolean).join(' ') || undefined}
+        className={`w-full rounded-md border border-zinc-300 bg-white px-3 py-2.5 text-sm text-zinc-900 outline-none focus:border-purple-600 focus:ring-2 focus:ring-purple-100 ${onToggleVisibility ? 'pr-11' : ''}`}
+      />
+      {onToggleVisibility && (
+        <button
+          type="button"
+          onClick={onToggleVisibility}
+          aria-label={visible ? `Hide ${label.toLowerCase()}` : `Show ${label.toLowerCase()}`}
+          aria-pressed={visible}
+          className="absolute inset-y-0 right-0 flex w-10 items-center justify-center text-zinc-500 hover:text-zinc-800"
+        >
+          {visible ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+        </button>
+      )}
+    </div>
+    {hint && <p id={`${id}-hint`} className="mt-1 text-xs text-zinc-600">{hint}</p>}
+    {error && <p id={`${id}-error`} className="mt-1 text-sm text-rose-600">{error}</p>}
+  </div>
+);
+
+const CustomSignUpForm: React.FC = () => {
+  const { signUp, errors, fetchStatus } = useSignUp();
+  const [firstName, setFirstName] = useState('');
+  const [middleName, setMiddleName] = useState('');
+  const [surname, setSurname] = useState('');
+  const [suffix, setSuffix] = useState('');
+  const [gender, setGender] = useState('');
+  const [username, setUsername] = useState('');
+  const [contactNumber, setContactNumber] = useState('');
+  const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [passwordVisible, setPasswordVisible] = useState(false);
+  const [confirmPasswordVisible, setConfirmPasswordVisible] = useState(false);
+  const [requestError, setRequestError] = useState('');
+  const passwordsMatch = password === confirmPassword;
+  const usernameFormatError = username && !usernamePattern.test(username) ? usernameHint : undefined;
+  const usernameError = errors.fields.username?.message || usernameFormatError;
+  const passwordError = errors.fields.password?.message;
+  const confirmPasswordError = confirmPassword && !passwordsMatch ? 'Passwords do not match.' : undefined;
+
+  const handleSignUp = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    setRequestError('');
+    if (!passwordsMatch) return;
+    if (!usernamePattern.test(username)) {
+      setRequestError(usernameHint);
+      return;
+    }
+    if (!isValidPhilippinePhoneNumber(contactNumber)) {
+      setRequestError('Enter a valid Philippine mobile number with 10 digits after +63.');
+      return;
+    }
+
+    try {
+      const { error } = await signUp.password({
+        username,
+        password,
+        firstName,
+        lastName: surname,
+        unsafeMetadata: {
+          middleName,
+          gender,
+          contactNumber: formatPhilippinePhoneNumber(contactNumber),
+          ...(suffix ? { suffix } : {}),
+        },
+      });
+      if (error) {
+        setRequestError(error.message);
+        return;
+      }
+      if (signUp.status !== 'complete') {
+        setRequestError('Clerk requires additional signup fields or verification. Enable username signup and disable required email verification in Clerk settings.');
+        return;
+      }
+      const finalization = await signUp.finalize();
+      if (finalization.error) setRequestError(finalization.error.message);
+    } catch (caught) {
+      setRequestError(caught instanceof Error ? caught.message : 'Account creation failed. Please try again.');
+    }
+  };
+
+  return (
+    <form onSubmit={handleSignUp} className="space-y-4">
+      <div className="mb-5 text-center">
+        <h2 className="text-xl font-semibold text-zinc-900">Create an account</h2>
+        <p className="mt-1 text-sm text-zinc-600">Sign up to access your health center account.</p>
+      </div>
+      <AuthField id="first-name" label="First name" value={firstName} onChange={setFirstName} autoComplete="given-name" />
+      <AuthField id="middle-name" label="Middle name" value={middleName} onChange={setMiddleName} autoComplete="additional-name" />
+      <AuthField id="surname" label="Surname" value={surname} onChange={setSurname} autoComplete="family-name" />
+      <div>
+        <label htmlFor="sex-gender" className="mb-1.5 block text-sm font-medium text-zinc-800">Sex/Gender</label>
+        <select id="sex-gender" name="sex-gender" required value={gender} onChange={(event) => setGender(event.target.value)} className="w-full rounded-md border border-zinc-300 bg-white px-3 py-2.5 text-sm text-zinc-900 outline-none focus:border-purple-600 focus:ring-2 focus:ring-purple-100">
+          <option value="" disabled>Select an option</option>
+          <option value="Male">Male</option>
+          <option value="Female">Female</option>
+          <option value="Other">Other</option>
+          <option value="Prefer not to say">Prefer not to say</option>
+        </select>
+      </div>
+      <div>
+        <label htmlFor="suffix" className="mb-1.5 block text-sm font-medium text-zinc-800">Suffix (optional)</label>
+        <select id="suffix" name="suffix" value={suffix} onChange={(event) => setSuffix(event.target.value)} className="w-full rounded-md border border-zinc-300 bg-white px-3 py-2.5 text-sm text-zinc-900 outline-none focus:border-purple-600 focus:ring-2 focus:ring-purple-100">
+          <option value="">None</option>
+          {['Jr.', 'Sr.', 'I', 'II', 'III', 'IV', 'V'].map((value) => <option key={value} value={value}>{value}</option>)}
+        </select>
+      </div>
+      <AuthField
+        id="username"
+        label="Username"
+        value={username}
+        onChange={(value) => setUsername(value.toLowerCase())}
+        error={usernameError}
+        hint={usernameHint}
+        autoComplete="username"
+        minLength={3}
+        maxLength={20}
+        pattern="[a-z][a-z0-9_]{2,19}"
+      />
+      <div>
+        <label htmlFor="signup-contact-number" className="mb-1.5 block text-sm font-medium text-zinc-800">Contact number</label>
+        <div className="flex">
+          <span className="inline-flex items-center rounded-l-md border border-r-0 border-zinc-300 bg-zinc-50 px-3 text-sm text-zinc-700">+63</span>
+          <input
+            id="signup-contact-number"
+            name="contact-number"
+            type="tel"
+            inputMode="numeric"
+            autoComplete="tel-national"
+            value={contactNumber}
+            onChange={(event) => setContactNumber(normalizePhilippinePhoneNumber(event.target.value))}
+            required
+            minLength={10}
+            maxLength={16}
+            pattern="9[0-9]{9}"
+            aria-describedby="signup-contact-number-hint"
+            className="w-full rounded-r-md border border-zinc-300 bg-white px-3 py-2.5 text-sm text-zinc-900 outline-none focus:border-purple-600 focus:ring-2 focus:ring-purple-100"
+          />
+        </div>
+        <p id="signup-contact-number-hint" className="mt-1 text-xs text-zinc-600">Enter 10 digits starting with 9.</p>
+      </div>
+      <AuthField id="password" label="Password" type="password" value={password} onChange={setPassword} error={passwordError} autoComplete="new-password" visible={passwordVisible} onToggleVisibility={() => setPasswordVisible((visible) => !visible)} />
+      <AuthField id="confirm-password" label="Confirm password" type="password" value={confirmPassword} onChange={setConfirmPassword} autoComplete="new-password" error={confirmPasswordError} visible={confirmPasswordVisible} onToggleVisibility={() => setConfirmPasswordVisible((visible) => !visible)} />
+      {confirmPassword && passwordsMatch && <p role="status" className="text-sm text-emerald-700">Passwords match.</p>}
+      {requestError && requestError !== passwordError && <p role="alert" className="text-sm text-rose-600">{requestError}</p>}
+      <div id="clerk-captcha" />
+      <button type="submit" disabled={fetchStatus === 'fetching' || !passwordsMatch || !confirmPassword} className="w-full rounded-md bg-[#8b00ff] px-4 py-2.5 text-sm font-semibold text-white hover:bg-[#7600db] disabled:cursor-not-allowed disabled:opacity-60">
+        {fetchStatus === 'fetching' ? 'Creating account...' : 'Continue'}
+      </button>
+    </form>
+  );
+};
 
 export const AuthScreen: React.FC<{ onClose: () => void }> = ({ onClose }) => {
   const [isRegistering, setIsRegistering] = useState(false);
@@ -74,7 +261,7 @@ export const AuthScreen: React.FC<{ onClose: () => void }> = ({ onClose }) => {
 
         <div className="min-w-0 px-3 py-5 sm:px-8 sm:py-7">
           {isRegistering ? (
-            <SignUp routing="hash" signInUrl="#" appearance={signUpAppearance} />
+            <CustomSignUpForm />
           ) : (
             <SignIn routing="hash" signUpUrl="#" appearance={signInAppearance} />
           )}

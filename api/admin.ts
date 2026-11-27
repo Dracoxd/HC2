@@ -6,9 +6,7 @@ import { authenticateClerk } from './clerk-auth.js';
 import { clinicPublicSettingKeys, ensureSiteContent, getContentDatabase, readSiteContent, validateSiteContent } from './site-content-store.js';
 import {
   formatAppointmentTime,
-  getAppointmentTimeMinutes,
   getAppointmentTimePeriod,
-  getManilaAppointmentClock,
 } from '../src/appointmentSchedule.js';
 
 type ApiRequest = IncomingMessage & { body?: unknown; headers: IncomingMessage['headers'] & { authorization?: string } };
@@ -59,7 +57,12 @@ async function initializeAdminDatabase(db: ReturnType<typeof createClient>) {
       status TEXT NOT NULL DEFAULT 'pending',
       chat_status TEXT NOT NULL DEFAULT 'closed',
       created_at TEXT NOT NULL,
-      completed_at TEXT
+      completed_at TEXT,
+      missed_at TEXT,
+      guardian_name TEXT,
+      guardian_relationship TEXT,
+      guardian_consent INTEGER NOT NULL DEFAULT 0,
+      early_arrival_consent INTEGER NOT NULL DEFAULT 0
     )`,
     `CREATE TABLE IF NOT EXISTS appointment_messages (
       id TEXT PRIMARY KEY,
@@ -89,12 +92,6 @@ async function initializeAdminDatabase(db: ReturnType<typeof createClient>) {
       read_at TEXT NOT NULL,
       PRIMARY KEY (appointment_id, user_uid)
     )`,
-    `CREATE TABLE IF NOT EXISTS appointment_reminders (
-      appointment_id TEXT NOT NULL,
-      reminder_type TEXT NOT NULL,
-      sent_at TEXT NOT NULL,
-      PRIMARY KEY (appointment_id, reminder_type)
-    )`,
   ], 'write');
   const columns = await db.execute('PRAGMA table_info(appointment_requests)');
   const columnNames = new Set(columns.rows.map((column) => String(column.name)));
@@ -107,6 +104,9 @@ async function initializeAdminDatabase(db: ReturnType<typeof createClient>) {
   if (!columnNames.has('completed_at')) {
     await db.execute('ALTER TABLE appointment_requests ADD COLUMN completed_at TEXT');
   }
+  if (!columnNames.has('missed_at')) {
+    await db.execute('ALTER TABLE appointment_requests ADD COLUMN missed_at TEXT');
+  }
   if (!columnNames.has('address')) {
     await db.execute('ALTER TABLE appointment_requests ADD COLUMN address TEXT');
   }
@@ -118,6 +118,18 @@ async function initializeAdminDatabase(db: ReturnType<typeof createClient>) {
   }
   if (!columnNames.has('age')) {
     await db.execute('ALTER TABLE appointment_requests ADD COLUMN age INTEGER');
+  }
+  if (!columnNames.has('guardian_name')) {
+    await db.execute('ALTER TABLE appointment_requests ADD COLUMN guardian_name TEXT');
+  }
+  if (!columnNames.has('guardian_relationship')) {
+    await db.execute('ALTER TABLE appointment_requests ADD COLUMN guardian_relationship TEXT');
+  }
+  if (!columnNames.has('guardian_consent')) {
+    await db.execute('ALTER TABLE appointment_requests ADD COLUMN guardian_consent INTEGER NOT NULL DEFAULT 0');
+  }
+  if (!columnNames.has('early_arrival_consent')) {
+    await db.execute('ALTER TABLE appointment_requests ADD COLUMN early_arrival_consent INTEGER NOT NULL DEFAULT 0');
   }
   if (!columnNames.has('priority_categories')) {
     await db.execute("ALTER TABLE appointment_requests ADD COLUMN priority_categories TEXT NOT NULL DEFAULT ''");
@@ -156,53 +168,6 @@ function isAdmin(decoded: NonNullable<Awaited<ReturnType<typeof authenticateCler
   return candidates.some((email) => !!email && allowedEmails.includes(email.toLowerCase()));
 }
 
-async function createDueAppointmentReminders(db: ReturnType<typeof createClient>, userUid: string) {
-  const now = new Date();
-  const clock = getManilaAppointmentClock(now);
-  const appointments = await db.execute({
-    sql: `SELECT id, service_name, preferred_date, preferred_time
-          FROM appointment_requests
-          WHERE owner_uid = ? AND status = 'confirmed'
-            AND preferred_date = ? AND chat_status != 'deleted'`,
-    args: [userUid, clock.date],
-  });
-
-  for (const appointment of appointments.rows) {
-    const appointmentTime = String(appointment.preferred_time);
-    const appointmentMinutes = getAppointmentTimeMinutes(appointmentTime);
-    if (appointmentMinutes === null
-      || clock.minutes < appointmentMinutes - 60
-      || clock.minutes >= appointmentMinutes) continue;
-
-    const appointmentId = String(appointment.id);
-    const sentAt = now.toISOString();
-    const transaction = await db.transaction('write');
-    try {
-      const claim = await transaction.execute({
-        sql: `INSERT OR IGNORE INTO appointment_reminders (appointment_id, reminder_type, sent_at)
-              VALUES (?, 'one_hour_before', ?)`,
-        args: [appointmentId, sentAt],
-      });
-      if (claim.rowsAffected > 0) {
-        const time = formatAppointmentTime(appointmentTime);
-        const service = String(appointment.service_name);
-        const date = String(appointment.preferred_date);
-        const message = `This is an automated reminder.\n\nYour appointment for ${service} is scheduled for ${date} at ${time}. Please arrive on time.\n\nFilipino:\nAwtomatikong paalala ito. Nakatakda ang iyong appointment para sa ${service} sa ${date}, ganap na ${time}. Mangyaring dumating sa oras.`;
-        await transaction.execute({
-          sql: `INSERT INTO appointment_messages
-                (id, appointment_id, sender_uid, sender_role, sender_name, message, created_at)
-                VALUES (?, ?, 'clinic-system', 'admin', 'Health Center', ?, ?)`,
-          args: [randomUUID(), appointmentId, message, sentAt],
-        });
-      }
-      await transaction.commit();
-    } catch (error) {
-      await transaction.rollback();
-      throw error;
-    }
-  }
-}
-
 export default async function handler(request: ApiRequest, response: ApiResponse) {
   response.setHeader('Cache-Control', 'no-store');
   const decoded = await authenticate(request);
@@ -232,7 +197,6 @@ export default async function handler(request: ApiRequest, response: ApiResponse
   if (request.method === 'GET' && mode === 'unread_messages') {
     if (admin) return response.status(200).json({ unreadCount: 0 });
     try {
-      await createDueAppointmentReminders(db, decoded.sub);
       const result = await db.execute({
         sql: `SELECT COUNT(*) AS unread_count
               FROM appointment_messages AS message
@@ -330,6 +294,28 @@ export default async function handler(request: ApiRequest, response: ApiResponse
         return response.status(409).json({ error: 'Only pending or accepted appointments can be cancelled.' });
       }
       return response.status(200).json({ appointmentId, status: 'cancelled' });
+    }
+
+    if (action === 'mark_missed') {
+      if (!admin) return response.status(403).json({ error: 'Admin permission is required.' });
+      if (!appointmentId && !referenceCode) return response.status(400).json({ error: 'Appointment is required.' });
+      const target = appointmentId ? 'id' : 'reference_code';
+      const result = await db.execute({
+        sql: `UPDATE appointment_requests
+              SET status = 'missed',
+                  chat_status = CASE WHEN chat_status = 'deleted' THEN 'deleted' ELSE 'closed' END
+              WHERE ${target} = ? AND status = 'confirmed'`,
+        args: [appointmentId || referenceCode],
+      });
+      if (result.rowsAffected === 0) {
+        const existing = await db.execute({
+          sql: `SELECT status FROM appointment_requests WHERE ${target} = ?`,
+          args: [appointmentId || referenceCode],
+        });
+        if (existing.rows.length === 0) return response.status(404).json({ error: 'Appointment not found.' });
+        return response.status(409).json({ error: 'Only accepted appointments can be marked missed.' });
+      }
+      return response.status(200).json({ appointmentId, status: 'missed' });
     }
 
     if (action === 'upload_announcement_image') {

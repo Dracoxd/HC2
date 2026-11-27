@@ -92,12 +92,7 @@ export const Header: React.FC = () => {
             >
               <Accessibility className="h-5 w-5" aria-hidden="true" />
             </button>
-            {isSignedIn ? (
-              <button type="button" onClick={() => setMessagesOpen(true)} className="relative flex h-11 w-11 items-center justify-center text-[#4b5563] hover:text-[#0f4d3c] xl:hidden" aria-label={`Messages${unreadAdminMessageCount > 0 ? `, ${unreadAdminMessageCount} unread` : ''}`} title={unreadMessagesError || (unreadAdminMessageCount > 0 ? `${unreadAdminMessageCount} unread message${unreadAdminMessageCount === 1 ? '' : 's'}` : 'Messages')}>
-                <Mail className="h-5 w-5" />
-                {unreadAdminMessageCount > 0 && <span aria-hidden="true" className="absolute right-0 top-0 flex h-5 min-w-5 items-center justify-center rounded-full bg-rose-600 px-1 text-[10px] font-bold leading-none text-white">{unreadAdminMessageCount > 99 ? '99+' : unreadAdminMessageCount}</span>}
-              </button>
-            ) : (
+            {!isSignedIn && (
               <button type="button" onClick={() => setAuthModalOpen(true)} className="flex min-h-11 items-center gap-2 rounded-md bg-[#0f4d3c] px-3 text-xs font-bold text-white hover:bg-[#2c7a5f] xl:hidden">
                 <LogIn className="h-4 w-4" />
                 <span>LOG IN</span>
